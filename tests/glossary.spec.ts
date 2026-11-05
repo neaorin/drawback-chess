@@ -2,6 +2,42 @@ import { expect, test } from '@playwright/test';
 import { DRAWBACKS, drawbackDescription, index, newGame } from '../src/game';
 import { DIFFICULTY_LEVELS, difficultyLevel } from '../src/drawback-catalogue';
 import { templateDescription } from '../src/drawback-state';
+import { unluckySquares } from '../src/drawback-helpers';
+import { legalMoves, square } from '../src/game';
+
+test('Unlucky marks exactly its forbidden destinations without a turn message', async ({ page }) => {
+  const game = newGame('unlucky', 'horse', 42);
+  await page.addInitScript(game => {
+    if (!localStorage.getItem('unlucky-seeded')) {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+      localStorage.setItem('unlucky-seeded', 'true');
+    }
+  }, game);
+  await page.goto('/');
+  await expect(page.locator('.unlucky-forbidden')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  const expected = [...unluckySquares(game.rules!.seed, 'w', 0)].map(square).sort();
+  const marks = () => page.locator('.unlucky-forbidden').evaluateAll(elements =>
+    elements.map(e => e.parentElement!.getAttribute('data-square')).sort());
+  expect(await marks()).toEqual(expected);
+  await expect(page.getByRole('status', { name: 'Your move restriction' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Flip board', exact: true }).click();
+  expect(await marks()).toEqual(expected);
+  await page.reload();
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  expect(await marks()).toEqual(expected);
+  const move = legalMoves(game)[0];
+  expect(expected).not.toContain(square(move.to));
+  await page.locator(`[data-square="${square(move.from)}"]`).click();
+  await expect(page.locator('.legal-square .unlucky-forbidden')).toHaveCount(0);
+  await page.locator(`[data-square="${square(move.to)}"]`).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('.unlucky-forbidden')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.unlucky-forbidden')).toHaveCount(0);
+});
 
 test('individual drawback options have explanatory tooltips without template placeholders', async ({ page }) => {
   await page.goto('/');

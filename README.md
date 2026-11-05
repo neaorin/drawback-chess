@@ -251,6 +251,8 @@ These markers follow the same reveal and handoff privacy rules.
 These assignments are saved and do not change when reloading or reviewing.
 Per-turn random restrictions are likewise deterministic for a saved game.
 Unlucky forbids exactly 32 destination squares each turn.
+Those squares have a light red overlay on the affected player's turn, with no
+additional turn message. The overlays are hidden during local handoff.
 
 Where the short glossary wording leaves details unspecified, this implementation
 uses these conventions:

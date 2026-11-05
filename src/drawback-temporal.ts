@@ -1,5 +1,5 @@
 import { other, type Kind, type Move } from './game';
-import { adjacent, advance, attacked, distance, file, king, randomNumber, rightward, row, shade, squares, value } from './drawback-helpers';
+import { adjacent, advance, attacked, distance, file, king, randomNumber, rightward, row, shade, squares, unluckySquares, value } from './drawback-helpers';
 import type { RuleContext, RuleEvent } from './drawback-types';
 
 export const TEMPORAL_IDS = [
@@ -216,9 +216,7 @@ export function temporalMoves(ctx: RuleContext): Move[] {
     case 'turn-the-other-cheek':
       return captured(lastEnemy) ? filter(m => m.capture !== lastEnemy!.to) : moves;
     case 'unlucky': {
-      const forbidden = new Set(Array.from({ length: 64 }, (_, at) => at)
-        .sort((a, b) => random(TEMPORAL_SALTS.unlucky + a) - random(TEMPORAL_SALTS.unlucky + b) || a - b)
-        .slice(0, 32));
+      const forbidden = unluckySquares(state.seed, color, g.turns[color]);
       return filter(m => relocations(m).every(r => !forbidden.has(r.to)));
     }
     case 'unspooling': {

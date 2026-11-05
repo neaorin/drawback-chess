@@ -224,6 +224,7 @@ export function drawbackMoveInfo(g: Game, color = g.turn): string | null {
     case 'bipartisanship':
       return randomMoveInfo(g);
     case 'always-check-it-might-be-mate':
+    case 'unlucky':
       return null;
     case 'glorious-battle': {
       const start = rulesFor(g).params[color].move;

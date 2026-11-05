@@ -174,7 +174,6 @@ export function randomMoveInfo(g: Game): string | null {
       return `Must move to ${'abcdefgh'[file(at)]}${8 - row(at)} if possible.`;
     }
     case 'winds-of-fate': return `This move: cannot move ${randomNumber(s.seed, c, turn, 4) % 2 === 0 ? 'left' : 'right'}.`;
-    case 'unlucky': return 'Half of the destination squares are forbidden this turn. Select a piece to see its legal moves.';
     case 'unspooling':
       return `Distance remaining: ${100 - own.reduce((sum, e) => sum + distance(e.from, e.to), 0)}. Using the last unit loses the game.`;
     case 'doctor-octopus':

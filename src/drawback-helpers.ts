@@ -33,6 +33,12 @@ export function preview(g: Game, m: Move): Game {
   return { ...g, board, kingPass: null, ep: null };
 }
 
+export function unluckySquares(seed: number, color: Color, turn: number): Set<number> {
+  return new Set(Array.from({ length: 64 }, (_, at) => at)
+    .sort((a, b) => randomNumber(seed, color, turn, 100 + a) - randomNumber(seed, color, turn, 100 + b) || a - b)
+    .slice(0, 32));
+}
+
 export function randomNumber(seed: number, color: Color, turn: number, salt: number): number {
   let x = (seed ^ Math.imul(turn + 1, 0x9e3779b9) ^ Math.imul(salt + 1, 0x85ebca6b) ^ (color === 'w' ? 1 : 2)) >>> 0;
   x ^= x >>> 16;
