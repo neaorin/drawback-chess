@@ -8,8 +8,16 @@
     <script>
       (() => {
         const param = new URLSearchParams(window.location.search).get("scoutTheme");
+        let saved;
+        try {
+          saved = localStorage.getItem("drawback-chess-theme");
+        } catch (error) {
+          console.error("Unable to load theme preference:", error);
+        }
         const theme =
-          param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          (param === "light" || param === "dark" ? param : null) ||
+          (saved === "light" || saved === "dark" ? saved : null) ||
+          (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
         document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>

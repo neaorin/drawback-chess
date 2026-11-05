@@ -34,7 +34,8 @@ test('highlights moves, rejects an illegal destination and plays a real Stockfis
   await loadPosition(page, newGame('horse', 'even'), 'ai');
   const board = await page.locator('.board').boundingBox();
   expect(board).not.toBeNull();
-  expect(board!.width).toBeGreaterThan(700);
+  expect(board!.width).toBeGreaterThan(300);
+  expect(board!.y + board!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
   await expect(page.locator('[data-square="e2"] .piece')).toHaveAttribute('src', /pieces\/cburnett\/wP\.svg$/);
   await expect(page.locator('[data-square="e7"] .piece')).toHaveAttribute('src', /pieces\/cburnett\/bP\.svg$/);
   await expect.poll(() => page.locator('.board img.piece').evaluateAll(images =>

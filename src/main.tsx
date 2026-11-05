@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { DRAWBACKS, colorName, drawbackDescription, drawbackMoveInfo, fogVisibility, legalMoves, newGame, other, play, positionAt, square, visibleKingAttacks, type Color, type DrawbackId, type Game, type Kind, type Move, type Piece } from './game';
 import { chooseAI, resolveEngineBan, StockfishClient } from './ai';
@@ -57,6 +57,7 @@ function DrawbackSelect({ id, label, value, onChange }: {
 }
 
 function App() {
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
   const [game, setGame] = useState(() => initial.saved?.game ?? newGame());
   const [reviewPosition, setReviewPosition] = useState<Game | null>(null);
   const [mode, setMode] = useState<Mode>(initial.saved?.mode ?? 'ai');
@@ -76,6 +77,22 @@ function App() {
   const [busy, setBusy] = useState(false);
   const [engineStatus, setEngineStatus] = useState('Stockfish 19 · ready when you are');
   const [error, setError] = useState(initial.error);
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    setTheme(next);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('scoutTheme')) {
+      url.searchParams.set('scoutTheme', next);
+      window.history.replaceState(null, '', url);
+    }
+    try {
+      localStorage.setItem('drawback-chess-theme', next);
+    } catch (error) {
+      console.error('Unable to save theme preference:', error);
+      setError('Your theme changed, but the preference could not be saved in this browser.');
+    }
+  }
   const [tab, setTab] = useState<'moves' | 'rules'>('moves');
   const [glossarySearch, setGlossarySearch] = useState('');
   const [confirmReveal, setConfirmReveal] = useState<Color | null>(null);
@@ -85,6 +102,32 @@ function App() {
   const historyRef = useRef<HTMLDivElement>(null);
   const saveFailed = useRef(false);
   const dragging = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const board = boardRef.current!;
+    const frame = board.parentElement!;
+    const column = frame.parentElement!;
+    const layout = column.parentElement!;
+    const fitBoard = () => {
+      if (window.innerWidth <= 820) {
+        layout.style.removeProperty('--board-max-size');
+        return;
+      }
+      const frameBounds = frame.getBoundingClientRect();
+      const controlsHeight = column.getBoundingClientRect().bottom - frameBounds.bottom;
+      const available = Math.max(0, Math.floor(window.innerHeight - frameBounds.top - controlsHeight - 16));
+      layout.style.setProperty('--board-max-size', `${available}px`);
+    };
+    const observer = new ResizeObserver(fitBoard);
+    observer.observe(column);
+    observer.observe(document.querySelector('.site-header')!);
+    observer.observe(document.querySelector('.game-actions')!);
+    window.addEventListener('resize', fitBoard);
+    fitBoard();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', fitBoard);
+    };
+  }, []);
   const viewer = mode === 'ai' ? human : game.turn;
   const displayedGame = reviewPosition ?? game;
   const viewPly = displayedGame.history.length;
@@ -293,7 +336,7 @@ function App() {
   return <div className="app-shell">
     <header className="site-header"><a className="brand" href="./" aria-label="Drawback Chess home"><span className="brand-mark">♞</span><span>drawback<span className="brand-light">chess</span><span className="brand-dot">.</span></span></a>
       <nav aria-label="Main navigation"><span className="nav-active">Play</span><button onClick={() => setModal('drawbacks')}>The drawbacks <span className="count-pill">{DRAWBACKS.length}</span></button><button onClick={() => setModal('rules')}>How to play <Icon name="book" /></button></nav>
-      <span className="edition">CHESS, WITH A CATCH.</span>
+      <button className="theme-toggle" role="switch" aria-checked={theme === 'dark'} aria-label="Dark theme" title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} onClick={toggleTheme}><span className="theme-switch-track" aria-hidden="true"><span className="theme-switch-thumb" /></span></button>
     </header>
     <main>
       <div className="game-actions">{!game.result && <button className="outline-button" disabled={handoff || !!sliding} onClick={() => setConfirmResign(viewer)}>Resign</button>}<button className="primary-button new-game" onClick={newMatch}>New game <span>+</span></button></div>

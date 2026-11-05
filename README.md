@@ -15,6 +15,12 @@ under their drawback. The game enforces restrictions and highlights legal moves
 when you select a piece, so you never need to police the rules yourself.
 
 Play against a Stockfish-backed computer or a friend on the same device.
+On desktop, the board scales to fit the visible window, including player rows
+and board controls, and resizes with the window. Pieces fill 92% of their
+squares. Mobile keeps a full-width board with the sidebar stacked below it.
+The board's light and dark square colors remain consistent in both UI themes.
+Use the toggle switch on the right of the header to switch between light and dark.
+Your choice is saved locally; without a saved choice, the system theme is used.
 This browser-based, local-first implementation is built with React, TypeScript,
 and Vite, with all 181 glossary drawbacks and automatic game saving.
 
