@@ -97,6 +97,12 @@ function App() {
   const [glossarySearch, setGlossarySearch] = useState('');
   const [confirmReveal, setConfirmReveal] = useState<Color | null>(null);
   const [confirmResign, setConfirmResign] = useState<Color | null>(null);
+  const [showResult, setShowResult] = useState(false);
+  const previousResult = useRef(game.result);
+  useEffect(() => {
+    if (game.result && !previousResult.current) setShowResult(true);
+    previousResult.current = game.result;
+  }, [game.result]);
   const boardRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
@@ -159,7 +165,8 @@ function App() {
   const last = displayedGame.history.at(-1)?.move;
   const lastColor = displayedGame.history.at(-1)?.color;
   const showLast = !fogHandoff && (!fogged || lastColor === viewer);
-  const overlay = !!modal || handoff || !!promotion || confirmReveal || confirmResign;
+  const resultModal = showResult && !!game.result && !sliding;
+  const overlay = !!modal || handoff || !!promotion || confirmReveal || confirmResign || resultModal;
 
   function navigateHistory(ply: number) {
     if (overlay || sliding) return;
@@ -209,7 +216,7 @@ function App() {
     const previous = document.activeElement;
     dialogRef.current?.querySelector<HTMLElement>('button, select, input')?.focus();
     return () => { if (previous instanceof HTMLElement) previous.focus(); };
-  }, [overlay, modal, handoff, promotion, confirmReveal, confirmResign]);
+  }, [overlay, modal, handoff, promotion, confirmReveal, confirmResign, resultModal]);
   useEffect(() => {
     if (!needsEngineBan(game) || sliding || handoff) return;
     let cancelled = false;
@@ -304,6 +311,7 @@ function App() {
     setEngineStatus('Stockfish 19 · ready when you are');
   }
   function newMatch() {
+    setShowResult(false);
     setDraftDrawback('random');
     setDraftOpponentDrawback('random');
     setDraftMode(mode); setDraftColor(human); setDraftStrength(strength); setModal('new');
@@ -415,7 +423,7 @@ function App() {
     </main>
     <footer><span>Less predictable. More personal. Still chess.</span><span>BUILT FOR THE UNEXPECTED <span className="brand-dot">✳</span></span></footer>
     {overlay && <div className="modal-backdrop" onKeyDown={e => {
-      if (e.key === 'Escape' && !handoff) { setModal(null); setPromotion(null); setConfirmReveal(null); setConfirmResign(null); }
+      if (e.key === 'Escape' && !handoff) { setModal(null); setPromotion(null); setConfirmReveal(null); setConfirmResign(null); setShowResult(false); }
       if (e.key === 'Tab') {
         const elements = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), select, input');
         if (!elements?.length) return;
@@ -425,8 +433,13 @@ function App() {
       }
     }}>
       <div ref={dialogRef} className={`modal ${modal === 'drawbacks' ? 'wide-modal' : ''}`} role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-        {!handoff && <button className="close-modal" aria-label="Close dialog" onClick={() => { setModal(null); setPromotion(null); setConfirmReveal(null); setConfirmResign(null); }}><Icon name="close" /></button>}
-        {handoff ? <><div className="modal-emblem"><Icon name="shield" /></div><div className="eyebrow">KEEP IT BETWEEN YOU AND THE BOARD</div><h2 id="dialog-title">Pass to {colorName(game.turn)}.</h2><p>Hand over the device before continuing. Your private drawback is hidden between turns.</p><button className="primary-button full-width" onClick={() => { setHandoff(false); setFlipped(game.turn === 'b'); }}>I’m the {colorName(game.turn).toLowerCase()} player <Icon name="arrow" /></button></> :
+        {!handoff && <button className="close-modal" aria-label="Close dialog" onClick={() => { setModal(null); setPromotion(null); setConfirmReveal(null); setConfirmResign(null); setShowResult(false); }}><Icon name="close" /></button>}
+        {resultModal && game.result ? <><div className="eyebrow">GAME OVER</div><h2 id="dialog-title">{colorName(game.result.winner)} wins</h2><p>{game.result.reason}</p><div className="result-drawbacks">{(['w', 'b'] as const).map(color => {
+          const drawback = DRAWBACKS.find(d => d.id === game.drawbacks[color])!;
+          const level = difficultyLevel(drawback.difficulty);
+          return <section key={color} aria-label={`${colorName(color)} drawback`}><h3><span className="result-king" role="img" aria-label={`${colorName(color)} king`}><Glyph piece={{ color, kind: 'k' }} /></span><span className="result-drawback-name">{drawback.name}</span><span className={`difficulty-badge ${level.className}`}>■ {level.label}</span></h3><p>{drawbackDescription(game, color)}</p></section>;
+        })}</div><button className="primary-button full-width" onClick={newMatch}>Play again <Icon name="arrow" /></button><button className="text-button" onClick={() => setShowResult(false)}>Review board</button></> :
+          handoff ? <><div className="modal-emblem"><Icon name="shield" /></div><div className="eyebrow">KEEP IT BETWEEN YOU AND THE BOARD</div><h2 id="dialog-title">Pass to {colorName(game.turn)}.</h2><p>Hand over the device before continuing. Your private drawback is hidden between turns.</p><button className="primary-button full-width" onClick={() => { setHandoff(false); setFlipped(game.turn === 'b'); }}>I’m the {colorName(game.turn).toLowerCase()} player <Icon name="arrow" /></button></> :
           confirmResign ? <><h2 id="dialog-title">Resign this game?</h2><p>{colorName(confirmResign)} will resign. {colorName(other(confirmResign))} wins, and both drawbacks will be revealed.</p><button className="primary-button full-width" onClick={() => resign(confirmResign)}>Confirm resignation</button><button className="text-button" onClick={() => setConfirmResign(null)}>Keep playing</button></> :
           promotion ? <><div className="eyebrow">A WELL-EARNED UPGRADE</div><h2 id="dialog-title">Choose your promotion.</h2><div className="promotion-options">{promotion.map(m => <button key={m.promotion} aria-label={`Promote to ${names[m.promotion!]}`} onClick={() => commit(m)}><Glyph piece={{ color: game.turn, kind: m.promotion! }} /><span>{names[m.promotion!]}</span></button>)}</div></> :
           confirmReveal ? <><div className="eyebrow">NO TAKING THIS ONE BACK</div><h2 id="dialog-title">Let them in on {confirmReveal === viewer ? 'your' : `${colorName(confirmReveal)}’s`} secret?</h2><p>{confirmReveal === viewer ? 'Your' : `${colorName(confirmReveal)}’s`} drawback will be visible to the opponent for the rest of this game. The rule still applies.</p><button className="primary-button full-width" onClick={() => { setGame({ ...game, revealed: { ...game.revealed, [confirmReveal]: true } }); setConfirmReveal(null); }}>{confirmReveal === viewer ? 'Reveal my drawback' : `Reveal ${colorName(confirmReveal)}’s drawback`} <Icon name="eye" /></button></> :

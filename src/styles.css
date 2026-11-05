@@ -98,6 +98,12 @@ main { margin: 0 auto; }
 .difficulty-very-hard { --difficulty-color: var(--cp-difficulty-very-hard); }
 .drawback-select option:not([value="random"]), .difficulty-badge { color: var(--difficulty-color); background: var(--cp-difficulty-surface); }
 .difficulty-badge { display: inline-flex; gap: 6px; align-items: center; margin-top: 12px; padding: 4px 8px; border: 1px solid currentColor; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.result-drawbacks { display: grid; gap: 12px; margin: 20px 0; }
+.result-drawbacks section { padding: 16px; border: 1px solid var(--cp-border); border-radius: 10px; }
+.result-drawbacks h3 { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; }
+.result-king { display: inline-flex; flex-shrink: 0; }
+.result-king .piece { width: 30px; height: 30px; }
+.result-drawbacks h3 .difficulty-badge { margin: 0; }
 .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: var(--cp-text-soft); display: flex; align-items: center; gap: 8px; }
 .primary-button, .outline-button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 13px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; transition: background .15s, transform .15s; }
 .primary-button { background: var(--cp-accent); color: var(--cp-accent-fg); }

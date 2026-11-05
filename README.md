@@ -19,6 +19,9 @@ On desktop, the board scales to fit the visible window, including player rows
 and board controls, and resizes with the window. Pieces fill 92% of their
 squares. Mobile keeps a full-width board with the sidebar stacked below it.
 The board's light and dark square colors remain consistent in both UI themes.
+When a game finishes, a dismissible results dialog shows the winner, reason,
+and both players' drawbacks with difficulty levels beside their names. Review the
+board or choose Play again. Reloading a finished save does not reopen it.
 Use the toggle switch on the right of the header to switch between light and dark.
 Your choice is saved locally; without a saved choice, the system theme is used.
 This browser-based, local-first implementation is built with React, TypeScript,

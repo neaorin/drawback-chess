@@ -138,6 +138,12 @@ test('promotion chooser and king en passant end the game', async ({ page }) => {
   await expect(page.locator('.opponent-card')).toContainText('Your knights can move, but they cannot capture.');
   await expect(page.locator('.secret-tag')).toHaveText('REVEALED');
   await expect(page.getByRole('button', { name: /Reveal .* drawback/ })).toHaveCount(0);
+  const result = page.getByRole('dialog');
+  await expect(result.getByRole('heading', { name: 'Black wins', exact: true })).toBeVisible();
+  await expect(result).toContainText('King captured');
+  await expect(result.locator('.difficulty-badge')).toHaveCount(2);
+  await result.getByRole('button', { name: 'Play again', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('Make your next move.');
 });
 
 for (const reason of ['King captured', 'White has no legal moves', 'Castle Doctrine: a rook was captured']) {

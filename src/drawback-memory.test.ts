@@ -19,6 +19,23 @@ const has = (g: Game, from: string, to: string) =>
 const reply = (g: Game) => step(g, g.board[index('h8')] ? 'h8' : 'g8', g.board[index('h8')] ? 'g8' : 'h8');
 
 describe('piece identity and rule lifecycle', () => {
+  it.each(['w', 'b'] as const)('shows Glorious Battle countdown only during its four personal moves for %s', color => {
+    const g = setup('glorious-battle', {});
+    g.turn = color;
+    g.drawbacks[color] = 'glorious-battle';
+    g.rules!.params[color].move = 6;
+    for (const completed of [0, 4, 9, 10]) {
+      g.turns[color] = completed;
+      expect(drawbackMoveInfo(g)).toBeNull();
+    }
+    for (let remaining = 4; remaining >= 1; remaining--) {
+      g.turns[color] = 9 - remaining;
+      expect(drawbackMoveInfo(g)).toBe(`Battle! Must capture for the next ${remaining} moves`);
+      expect(drawbackMoveInfo(g, color === 'w' ? 'b' : 'w')).toBeNull();
+    }
+    g.result = { winner: color === 'w' ? 'b' : 'w', reason: 'No legal moves' };
+    expect(drawbackMoveInfo(g)).toBeNull();
+  });
   it.each(['w', 'b'] as const)('shows Expedition destination only on the scheduled personal move for %s', color => {
     const g = setup('expedition', {});
     g.turn = color;
