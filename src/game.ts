@@ -1,16 +1,14 @@
+import { DRAWBACKS, DIFFICULTY_LEVELS, difficultyLevel, type DrawbackChoice, type DrawbackId } from './drawback-catalogue';
+import { movementKind, initialRules, needsEngineBan, parameterDescription, randomMoveInfo, ruleContext, rulesFor, updateRules } from './drawback-state';
+import { positionalMoves } from './drawback-positional';
+import { temporalMoves } from './drawback-temporal';
+import { drawbackLoss } from './drawback-losses';
+import type { RuleState } from './drawback-types';
+
+export { DRAWBACKS, type DrawbackId };
 export type Color = 'w' | 'b';
 export type Kind = 'p' | 'n' | 'b' | 'r' | 'q' | 'k';
 export type Piece = { color: Color; kind: Kind };
-export type DrawbackId = 'castle' | 'command' | 'even' | 'alternator' | 'horse' | 'cess' | 'fog';
-export const DRAWBACKS: { id: DrawbackId; name: string; tag: string; description: string }[] = [
-  { id: 'castle', name: 'Castle Doctrine', tag: 'PROTECT YOUR ROOKS', description: 'If your opponent captures any of your rooks, you lose immediately.' },
-  { id: 'command', name: 'Centralized Command', tag: 'LEAD FROM THE FRONT', description: 'You can only capture if you moved your king on one of your previous three turns.' },
-  { id: 'even', name: 'Even Keeled', tag: 'TIMING IS EVERYTHING', description: 'You can only capture on your even-numbered turns. Your first turn is turn 1.' },
-  { id: 'alternator', name: 'Alternator', tag: 'CHANGE YOUR RHYTHM', description: 'Alternate between pawn and non-pawn moves. Your first move may be either.' },
-  { id: 'horse', name: 'Horse Tranquilizer', tag: 'A GENTLER KIND OF KNIGHT', description: 'Your knights can move, but they cannot capture.' },
-  { id: 'cess', name: 'Cess', tag: 'STAY OFF THE EDGE', description: 'You cannot move to the h-file, including when castling.' },
-  { id: 'fog', name: 'Fog of War', tag: 'PLAY WHAT YOU CAN SEE', description: 'See only your pieces and squares they can move to. Enemy pieces blocking a pawn’s forward move appear as unknown occupants unless another piece can see them.' },
-];
 export interface Move {
   from: number;
   to: number;
@@ -31,6 +29,7 @@ export interface Game {
   lastPawn: Record<Color, boolean | null>;
   history: { color: Color; move: Move; label: string }[];
   result: { winner: Color; reason: string } | null;
+  rules?: RuleState;
 }
 export const other = (c: Color): Color => c === 'w' ? 'b' : 'w';
 export const colorName = (c: Color) => c === 'w' ? 'White' : 'Black';
@@ -40,12 +39,14 @@ export function index(s: string): number {
   return (8 - Number(s[1])) * 8 + 'abcdefgh'.indexOf(s[0]);
 }
 export const uci = (m: Move) => square(m.from) + square(m.to) + (m.promotion ?? '');
-export function randomDrawback(): DrawbackId {
+export function randomDrawback(choice: DrawbackChoice = 'random'): DrawbackId {
+  const level = DIFFICULTY_LEVELS.find(level => level.choice === choice);
+  const pool = level ? DRAWBACKS.filter(d => difficultyLevel(d.difficulty) === level) : DRAWBACKS;
   const value = new Uint32Array(1);
   crypto.getRandomValues(value);
-  return DRAWBACKS[value[0] % DRAWBACKS.length].id;
+  return pool[value[0] % pool.length].id;
 }
-export function newGame(white = randomDrawback(), black = randomDrawback()): Game {
+export function newGame(white = randomDrawback(), black = randomDrawback(), seed?: number): Game {
   const board: Game['board'] = Array.from({ length: 64 }, () => null);
   const back: Kind[] = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
   for (let x = 0; x < 8; x++) {
@@ -54,12 +55,17 @@ export function newGame(white = randomDrawback(), black = randomDrawback()): Gam
     board[x + 48] = { color: 'w', kind: 'p' };
     board[x + 56] = { color: 'w', kind: back[x] };
   }
-  return {
+  const game: Game = {
     board, turn: 'w', rights: { w: { king: true, queen: true }, b: { king: true, queen: true } },
     ep: null, kingPass: null, drawbacks: { w: white, b: black }, revealed: { w: false, b: false },
     turns: { w: 0, b: 0 }, lastKingTurn: { w: null, b: null }, lastPawn: { w: null, b: null },
     history: [], result: null,
   };
+  game.rules = initialRules(game, seed ?? crypto.getRandomValues(new Uint32Array(1))[0]);
+  if (!needsEngineBan(game) && legalMoves(game).length === 0) {
+    game.result = { winner: 'b', reason: 'White has no legal moves' };
+  }
+  return game;
 }
 
 const diagonals = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
@@ -73,6 +79,8 @@ export function pseudoMoves(g: Game, color = g.turn): Move[] {
   for (let from = 0; from < 64; from++) {
     const piece = g.board[from];
     if (!piece || piece.color !== color) continue;
+    const kind = movementKind(g, from);
+    if (!kind) continue;
     const r = Math.floor(from / 8), c = from % 8;
     const add = (to: number, capture?: number, castle?: Move['castle']) => {
       if (piece.kind === 'p' && (to < 8 || to >= 56)) {
@@ -108,10 +116,10 @@ export function pseudoMoves(g: Game, color = g.turn): Move[] {
       }
       continue;
     }
-    const directions = piece.kind === 'n' ? knights : piece.kind === 'b' ? diagonals :
-      piece.kind === 'r' ? straight : [...diagonals, ...straight];
+    const directions = kind === 'n' ? knights : kind === 'b' ? diagonals :
+      kind === 'r' ? straight : [...diagonals, ...straight];
     for (const [dr, dc] of directions) {
-      for (let n = 1; n <= (piece.kind === 'n' || piece.kind === 'k' ? 1 : 7); n++) {
+      for (let n = 1; n <= (kind === 'n' || kind === 'k' ? 1 : 7); n++) {
         const row = r + dr * n, col = c + dc * n;
         if (!onBoard(row, col)) break;
         const to = row * 8 + col;
@@ -213,15 +221,40 @@ export function drawbackMoveInfo(g: Game, color = g.turn): string | null {
         g.lastPawn[color] ? 'Must move a non-pawn.' : 'Must move a pawn.';
     case 'fog':
       return 'Fog hides unseen squares. ? marks an unknown enemy blocking a pawn. Opponent moves stay hidden until game over.';
-    default:
+    case 'bipartisanship':
+      return randomMoveInfo(g);
+    case 'always-check-it-might-be-mate':
       return null;
+    case 'expedition': {
+      const params = rulesFor(g).params[color];
+      return g.turns[color] + 1 === params.move ? `Must move to ${square(params.square)}.` : null;
+    }
+    case 'boxing-with-shadows': {
+      const lastEnemy = rulesFor(g).events.filter(event => event.color !== color).at(-1);
+      return lastEnemy && legalMoves(g).some(move => move.to === lastEnemy.from)
+        ? `Must move to ${square(lastEnemy.from)}.` : null;
+    }
+    case 'barbarian-rage': {
+      const last = rulesFor(g).events.filter(event => event.color === color).at(-1);
+      return last?.capture !== undefined && legalMoves(g).some(move => move.capture !== undefined)
+        ? 'Must capture.' : null;
+    }
+    default:
+      if (['horse', 'castle', 'cess'].includes(g.drawbacks[color] ?? '')) return null;
+      return randomMoveInfo(g) ?? drawbackDescription(g, color);
   }
+}
+
+export function drawbackDescription(g: Game, color: Color): string {
+  const drawback = DRAWBACKS.find(d => d.id === g.drawbacks[color]);
+  return drawback ? parameterDescription(g, color, drawback.description) : 'No drawback.';
 }
 
 export function legalMoves(g: Game): Move[] {
   if (g.result) return [];
+  if (needsEngineBan(g)) return [];
   const d = g.drawbacks[g.turn], turn = g.turns[g.turn] + 1;
-  return pseudoMoves(g).filter(m => {
+  const base = pseudoMoves(g).filter(m => {
     const p = g.board[m.from]!;
     if (d === 'cess' && (m.to % 8 === 7 || (m.castle && m.castle.rookTo % 8 === 7))) return false;
     if (d === 'alternator' && g.lastPawn[g.turn] !== null && g.lastPawn[g.turn] === (p.kind === 'p')) return false;
@@ -232,6 +265,20 @@ export function legalMoves(g: Game): Move[] {
     }
     return true;
   });
+  let context = ruleContext(g, base);
+  let moves = positionalMoves(context);
+  context = { ...context, moves };
+  moves = temporalMoves(context);
+  if (d === 'now-kiss') {
+    moves = moves.filter(m => m.capture === undefined ||
+      !['b', 'n', 'r'].includes(g.board[m.from]!.kind) ||
+      context.state.players[g.turn].kissed.includes(g.board[m.from]!.kind));
+  }
+  if (d === 'ichthyophobe') {
+    const banned = context.state.engineBans[g.turns.w + g.turns.b];
+    moves = moves.filter(m => uci(m) !== banned);
+  }
+  return moves;
 }
 
 function revokeRook(g: Game, at: number) {
@@ -269,11 +316,23 @@ export function transition(g: Game, m: Move, finish = true): Game {
     next.board[m.castle.rookFrom] = null;
     next.kingPass = { color, king: m.to, squares: [m.from, m.castle.rookTo] };
   }
+  next.rules = updateRules(g, next, m);
   if (captured?.kind === 'k') next.result = { winner: color, reason: 'King captured' };
   else if (captured?.kind === 'r' && g.drawbacks[opponent] === 'castle') {
     next.result = { winner: color, reason: 'Castle Doctrine: a rook was captured' };
   }
-  if (finish && !next.result && legalMoves(next).length === 0) {
+  if (!next.result) {
+    // A reply may trigger either player's loss; the mover's violation takes precedence.
+    for (const candidate of [color, opponent]) {
+      const reason = drawbackLoss(next, candidate);
+      if (reason) {
+        const name = DRAWBACKS.find(d => d.id === g.drawbacks[candidate])?.name;
+        next.result = { winner: other(candidate), reason: `${name ?? colorName(candidate)}: ${reason.split(': ').slice(1).join(': ')}` };
+        break;
+      }
+    }
+  }
+  if (finish && !next.result && !needsEngineBan(next) && legalMoves(next).length === 0) {
     next.result = { winner: color, reason: `${colorName(opponent)} has no legal moves` };
   }
   return next;
@@ -294,7 +353,8 @@ export function positionAt(g: Game, ply: number): Game {
   if (ply === g.history.length) return g;
   const white = g.drawbacks.w, black = g.drawbacks.b;
   if (!white || !black) throw new Error('Cannot reconstruct a game without its original drawbacks.');
-  let position = newGame(white, black);
+  let position = newGame(white, black, rulesFor(g).seed);
+  position.rules = { ...position.rules!, engineBans: { ...rulesFor(g).engineBans } };
   for (const entry of g.history.slice(0, ply)) position = play(position, entry.move);
   return position;
 }

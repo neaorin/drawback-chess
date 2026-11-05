@@ -137,7 +137,7 @@ describe('piece geometry and king-capture variant', () => {
 });
 
 describe('drawbacks', () => {
-  it('has seven distinct definitions', () => expect(new Set(DRAWBACKS.map(d => d.id)).size).toBe(7));
+  it('has 181 distinct definitions', () => expect(new Set(DRAWBACKS.map(d => d.id)).size).toBe(181));
   it('Castle Doctrine loses immediately on rook capture, not merely a threat', () => {
     const g = position({ e1: 'wk', h8: 'bk', a1: 'wr', a8: 'br' }, 'castle');
     g.turn = 'b';

@@ -1,8 +1,9 @@
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { describe, expect, it, vi } from 'vitest';
-import { chooseAI, stockfishRoots, StockfishClient, variantMove, type EnginePort } from './ai';
+import { chooseAI, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from './ai';
 import { DRAWBACKS, index, legalMoves, newGame, play, uci, type Game } from './game';
+import { needsEngineBan } from './drawback-state';
 
 function fakeEngine(best = 'e2e4') {
   const sent: string[] = [];
@@ -27,9 +28,9 @@ function bare(): Game {
 
 describe('AI constraints', () => {
   it.each(DRAWBACKS)('returns only permitted standard roots for $name', d => {
-    const g = newGame(d.id, 'horse');
+    const g = newGame(d.id, 'horse', 42);
     const allowed = new Set(legalMoves(g).map(uci));
-    if (d.id === 'fog') expect(stockfishRoots(g)).toEqual([]);
+    if (['fog', 'drag', 'shapeshifter', 'ichthyophobe'].includes(d.id)) expect(stockfishRoots(g)).toEqual([]);
     else expect(stockfishRoots(g).length).toBeGreaterThan(0);
     expect(stockfishRoots(g).every(m => allowed.has(uci(m)))).toBe(true);
   });
@@ -92,7 +93,8 @@ describe('AI constraints', () => {
   });
   it('variant search obeys its own drawback', () => {
     for (const d of DRAWBACKS) {
-      const g = newGame(d.id, 'horse');
+      const g = newGame(d.id, 'horse', 42);
+      if (needsEngineBan(g)) g.rules!.engineBans[0] = 'e2e4';
       expect(legalMoves(g).map(uci)).toContain(uci(variantMove(g)));
     }
   });
@@ -137,14 +139,30 @@ describe('AI constraints', () => {
   });
   it('plays randomized full games without illegal engine-fallback moves or king loss being ignored', () => {
     for (const d of DRAWBACKS) {
-      let g = newGame(d.id, 'command');
+      let g = newGame(d.id, 'command', 42);
       for (let turn = 0; turn < 60 && !g.result; turn++) {
+        if (needsEngineBan(g)) g.rules!.engineBans[g.turns.w + g.turns.b] = 'a1a1';
+        expect(legalMoves(g).length, `${d.id}, ply ${turn}, ${g.turn} to move`).toBeGreaterThan(0);
         const m = variantMove(g, 1);
         expect(legalMoves(g).map(uci)).toContain(uci(m));
         g = play(g, m);
         if (!g.result) expect(g.board.filter(p => p?.kind === 'k')).toHaveLength(2);
       }
     }
+  }, 60000);
+
+  it('prepares and persists the actual Stockfish forbidden move for Ichthyophobe', async () => {
+    const g = newGame('ichthyophobe', 'horse', 42);
+    const { port, sent } = fakeEngine('e2e4');
+    const client = new StockfishClient(port);
+    try {
+      const prepared = await resolveEngineBan(g, client, 10);
+      expect(prepared.game.rules!.engineBans[0]).toBe('e2e4');
+      expect(legalMoves(prepared.game).map(uci)).not.toContain('e2e4');
+      expect(prepared.source).toContain('Stockfish');
+      expect(sent.find(s => s.startsWith('go '))).toContain('e2e4');
+      expect(g.rules!.engineBans).toEqual({});
+    } finally { client.dispose(); }
   });
 });
 

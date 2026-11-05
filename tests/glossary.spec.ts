@@ -1,0 +1,257 @@
+import { expect, test } from '@playwright/test';
+import { DRAWBACKS, drawbackDescription, index, newGame } from '../src/game';
+import { DIFFICULTY_LEVELS, difficultyLevel } from '../src/drawback-catalogue';
+import { templateDescription } from '../src/drawback-state';
+
+test('individual drawback options have explanatory tooltips without template placeholders', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /New game/ }).click();
+  const tooltips = await page.locator('#drawback-choice optgroup[label="Individual drawbacks"] option')
+    .evaluateAll(options => options.map(option => option.getAttribute('title')));
+  expect(tooltips).toEqual(DRAWBACKS.map(d => templateDescription(d.description)));
+  expect(tooltips.every(text => text && !text.includes('$'))).toBe(true);
+  await expect(page.locator('#drawback-choice optgroup[label="Random options"] option[title]')).toHaveCount(0);
+});
+
+for (const color of ['w', 'b', 'local'] as const) {
+  test(`opponent selector applies independently when playing ${color}`, async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: /New game/ }).click();
+    if (color === 'local') await page.getByRole('button', { name: /Pass & play/ }).click();
+    else await page.getByLabel('Play as').selectOption(color);
+    const own = page.locator('#drawback-choice');
+    const opponent = page.locator('#opponent-drawback-choice');
+    expect(await opponent.innerHTML()).toBe(await own.innerHTML());
+    await own.selectOption('horse');
+    await opponent.selectOption('random-hard');
+    await expect(page.locator('.difficulty-badge')).toHaveCount(2);
+    await page.getByRole('button', { name: /Let’s play/ }).click();
+    if (color === 'local') await page.getByRole('button', { name: /I’m the .* player/ }).click();
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('drawback-chess-v1')!));
+    const ownColor = color === 'b' ? 'b' : 'w';
+    const enemyColor = ownColor === 'w' ? 'b' : 'w';
+    expect(saved.game.drawbacks[ownColor]).toBe('horse');
+    const selected = DRAWBACKS.find(d => d.id === saved.game.drawbacks[enemyColor])!;
+    expect(difficultyLevel(selected.difficulty).label).toBe('Hard');
+    expect(saved.game.revealed).toEqual({ w: false, b: false });
+    await page.getByRole('button', { name: /New game/ }).click();
+    await expect(own).toHaveValue('random');
+    await expect(opponent).toHaveValue('random');
+    await opponent.selectOption('cess');
+    await page.getByRole('button', { name: /Let’s play/ }).click();
+    await expect.poll(() => page.evaluate(color =>
+      JSON.parse(localStorage.getItem('drawback-chess-v1')!).game.drawbacks[color], enemyColor)).toBe('cess');
+  });
+}
+
+test('difficulty-specific Random options assign a matching drawback in local play', async ({ page }) => {
+  await page.goto('/');
+  for (const level of DIFFICULTY_LEVELS) {
+    await page.getByRole('button', { name: /New game/ }).click();
+    await expect(page.locator('#drawback-choice optgroup[label="Random options"] option')).toHaveCount(6);
+    await expect(page.locator('#drawback-choice optgroup[label="Individual drawbacks"] option')).toHaveCount(181);
+    await page.getByRole('button', { name: /Pass & play/ }).click();
+    await page.locator('#drawback-choice').selectOption(level.choice);
+    await expect(page.locator('.difficulty-badge')).toContainText(level.label);
+    await page.getByRole('button', { name: /Let’s play/ }).click();
+    await page.getByRole('button', { name: /I’m the .* player/ }).click();
+    const id = await page.evaluate(() => JSON.parse(localStorage.getItem('drawback-chess-v1')!).game.drawbacks.w);
+    const selected = DRAWBACKS.find(d => d.id === id)!;
+    expect(difficultyLevel(selected.difficulty).label).toBe(level.label);
+    await expect(page.locator('.drawback-content h3')).toHaveText(selected.name);
+  }
+});
+
+test('difficulty options and selected badges distinguish all five bands in both themes', async ({ page }) => {
+  for (const theme of ['light', 'dark']) {
+    await page.goto(`/?scoutTheme=${theme}`);
+    await page.getByRole('button', { name: /New game/ }).click();
+    const colors = new Set<string>();
+    for (const label of ['Very easy', 'Easy', 'Medium', 'Hard', 'Very hard']) {
+      const drawback = DRAWBACKS.find(d => difficultyLevel(d.difficulty).label === label)!;
+      const option = page.locator(`#drawback-choice option[value="${drawback.id}"]`);
+      await expect(option).toHaveText(`■ ${drawback.name} · ${label}`);
+      await page.locator('#drawback-choice').selectOption(drawback.id);
+      await expect(page.locator('.difficulty-badge')).toHaveText(`■ ${label}`);
+      const color = await option.evaluate(el => getComputedStyle(el).color);
+      await expect(page.locator('.difficulty-badge')).toHaveCSS('color', color);
+      colors.add(color);
+    }
+    expect(colors.size).toBe(5);
+    await page.locator('#drawback-choice').selectOption('random');
+    await expect(page.locator('.difficulty-badge')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Close dialog' }).click();
+  }
+});
+
+for (const [drawback, sprite, label] of [
+  ['blinded-by-the-sun', '.sun-sprite', /sun target/],
+  ['active-volcano', '.volcano-sprite', /volcano/],
+] as const) {
+test(`${drawback} sprite follows its target, flip and reload without exposing it during handoff`, async ({ page }) => {
+  const game = newGame(drawback, 'horse', 42);
+  const target = game.rules!.params.w.square;
+  const name = 'abcdefgh'[target % 8] + (8 - Math.floor(target / 8));
+  await page.addInitScript(game => {
+    if (!localStorage.getItem('sun-seeded')) {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+      localStorage.setItem('sun-seeded', 'true');
+    }
+  }, game);
+  await page.goto('/');
+  await expect(page.locator(sprite)).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator(`[data-square="${name}"] ${sprite}`)).toHaveCount(1);
+  await expect(page.locator(`[data-square="${name}"]`)).toHaveAttribute('aria-label', label);
+  if (drawback === 'active-volcano') {
+    await expect(page.locator('.volcano-danger')).toHaveCount(4);
+    for (const neighbor of [target - 8, target + 8, target - 1, target + 1]) {
+      const square = 'abcdefgh'[neighbor % 8] + (8 - Math.floor(neighbor / 8));
+      await expect(page.locator(`[data-square="${square}"] .volcano-danger`)).toHaveCount(1);
+      await expect(page.locator(`[data-square="${square}"]`)).toHaveAttribute('aria-label', /volcano danger zone/);
+    }
+  }
+  await page.getByRole('button', { name: /Flip board/ }).click();
+  await expect(page.locator(`[data-square="${name}"] ${sprite}`)).toHaveCount(1);
+  await page.reload();
+  await expect(page.locator(sprite)).toHaveCount(0);
+  await expect(page.locator('.volcano-danger')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator(`[data-square="${name}"] ${sprite}`)).toHaveCount(1);
+  await page.locator('[data-square="a2"]').click();
+  await page.locator('[data-square="a3"]').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator(sprite)).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator(sprite)).toHaveCount(0);
+  await expect(page.locator('.volcano-danger')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Reveal White drawback', exact: true }).click();
+  await page.getByRole('button', { name: 'Reveal White’s drawback', exact: true }).click();
+  await expect(page.locator(`[data-square="${name}"] ${sprite}`)).toHaveCount(1);
+});
+}
+
+test('river markers leave the center clear and follow orientation, reload and reveal privacy', async ({ page }) => {
+  const game = newGame('bridge-over-troubled-water', 'horse', 42);
+  await page.addInitScript(game => {
+    if (!localStorage.getItem('river-seeded')) {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+      localStorage.setItem('river-seeded', 'true');
+    }
+  }, game);
+  await page.goto('/');
+  await expect(page.locator('.river-overlay, .bridge-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  const checkTerrain = async () => {
+    await expect(page.locator('.river-overlay')).toHaveCount(12);
+    await expect(page.locator('.bridge-overlay')).toHaveCount(0);
+    for (const rank of [4, 5]) {
+      for (const file of 'abcdefgh') {
+        const cell = page.locator(`[data-square="${file}${rank}"]`);
+        await expect(cell.locator('.river-overlay')).toHaveCount('de'.includes(file) ? 0 : 1);
+        if ('de'.includes(file)) await expect(cell).not.toHaveAttribute('aria-label', /river|bridge/);
+        else await expect(cell).toHaveAttribute('aria-label', /river/);
+      }
+    }
+  };
+  await checkTerrain();
+  await page.getByRole('button', { name: /Flip board/ }).click();
+  await checkTerrain();
+  await page.goto('/?scoutTheme=dark');
+  await expect(page.locator('.river-overlay, .bridge-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await checkTerrain();
+  await page.locator('[data-square="c2"]').click();
+  await expect(page.locator('[data-square="c4"]')).not.toHaveAttribute('aria-label', /legal destination/);
+  await page.locator('[data-square="d2"]').click();
+  await expect(page.locator('[data-square="d4"]')).toHaveAttribute('aria-label', /legal destination/);
+  await page.locator('[data-square="d4"]').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect.poll(() => page.evaluate(() =>
+    JSON.parse(localStorage.getItem('drawback-chess-v1')!).game.history.at(-1)?.move.to)).toBe(index('d4'));
+  await expect(page.locator('.river-overlay, .bridge-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.river-overlay, .bridge-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Reveal White drawback', exact: true }).click();
+  await page.getByRole('button', { name: 'Reveal White’s drawback', exact: true }).click();
+  await checkTerrain();
+});
+
+test('all glossary drawbacks can be selected and a parameterized rule survives reload', async ({ page }) => {
+  const game = newGame('crusade', 'horse', 12345);
+  await page.addInitScript(game => {
+    if (!localStorage.getItem('glossary-seeded')) {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+      localStorage.setItem('glossary-seeded', 'true');
+    }
+  }, game);
+  await page.goto('/');
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.drawback-content')).toContainText(drawbackDescription(game, 'w'));
+  await expect(page.locator('.drawback-content')).not.toContainText('$');
+  await page.reload();
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.drawback-content')).toContainText(drawbackDescription(game, 'w'));
+  await page.getByRole('button', { name: /New game/ }).click();
+  await expect(page.locator('#drawback-choice option')).toHaveCount(187);
+  await page.locator('#drawback-choice').selectOption('vegan');
+  await page.getByRole('button', { name: /Start game|Let’s play|Start playing/ }).click();
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.drawback-content')).toContainText('Vegan');
+  await page.getByRole('button', { name: /The drawbacks/ }).click();
+  await page.getByRole('searchbox', { name: 'Find a drawback' }).fill('vegan');
+  await expect(page.locator('.glossary article')).toHaveCount(1);
+  await expect(page.locator('.glossary article')).toContainText("You can't capture knights");
+});
+
+test('Ichthyophobe prepares a real engine restriction for a human and keeps it after reload', async ({ page }) => {
+  const game = newGame('ichthyophobe', 'horse', 12345);
+  await page.addInitScript(game => {
+    if (!localStorage.getItem('ichthyophobe-seeded')) {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'ai', human: 'w', flipped: false, strength: 200,
+      }));
+      localStorage.setItem('ichthyophobe-seeded', 'true');
+    }
+  }, game);
+  await page.goto('/');
+  await expect(page.locator('.move-info')).toContainText('Engine-selected forbidden move', { timeout: 20000 });
+  const forbidden = await page.evaluate((): string =>
+    JSON.parse(localStorage.getItem('drawback-chess-v1')!).game.rules.engineBans[0]);
+  expect(forbidden).toMatch(/^[a-h][1-8][a-h][1-8][qrbn]?$/);
+  await expect(page.locator('.engine-note')).toContainText('Ichthyophobe · Stockfish');
+  await page.locator(`[data-square="${forbidden.slice(0, 2)}"]`).click();
+  await expect(page.locator(`[data-square="${forbidden.slice(2, 4)}"]`)).not.toHaveClass(/legal-square/);
+  await page.reload();
+  await expect(page.locator('.move-info')).toContainText(forbidden);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('new capture rules enforce both highlighted moves and submitted moves', async ({ page }) => {
+  const game = newGame('vegan', 'horse', 55);
+  game.board.fill(null);
+  game.board[index('e1')] = { color: 'w', kind: 'k' };
+  game.board[index('e8')] = { color: 'b', kind: 'k' };
+  game.board[index('a1')] = { color: 'w', kind: 'r' };
+  game.board[index('a4')] = { color: 'b', kind: 'n' };
+  game.rights.w = { king: false, queen: false };
+  await page.addInitScript(game => {
+    localStorage.setItem('drawback-chess-v1', JSON.stringify({
+      version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+    }));
+  }, game);
+  await page.goto('/');
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await page.locator('[data-square="a1"]').click();
+  await expect(page.locator('[data-square="a3"]')).toHaveClass(/legal-square/);
+  await expect(page.locator('[data-square="a4"]')).not.toHaveClass(/legal-square/);
+  await page.locator('[data-square="a4"]').click();
+  await expect(page.locator('[data-square="a4"]')).toHaveAttribute('aria-label', /Black knight/);
+  await expect(page.locator('.move-history')).toContainText('Your moves will appear here');
+});

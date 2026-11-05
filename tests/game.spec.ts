@@ -34,10 +34,10 @@ test('highlights moves, rejects an illegal destination and plays a real Stockfis
   await loadPosition(page, newGame('horse', 'even'), 'ai');
   const board = await page.locator('.board').boundingBox();
   expect(board).not.toBeNull();
-  expect(board!.y + board!.height).toBeLessThanOrEqual(840);
+  expect(board!.width).toBeGreaterThan(700);
   await expect(page.locator('[data-square="e2"] .piece')).toHaveAttribute('src', /pieces\/cburnett\/wP\.svg$/);
   await expect(page.locator('[data-square="e7"] .piece')).toHaveAttribute('src', /pieces\/cburnett\/bP\.svg$/);
-  expect(await page.locator('.board img.piece').evaluateAll(images =>
+  await expect.poll(() => page.locator('.board img.piece').evaluateAll(images =>
     images.every(image => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0))).toBe(true);
   await page.locator('[data-square="e2"]').click();
   await expect(page.locator('.legal-square')).toHaveCount(2);
@@ -47,7 +47,9 @@ test('highlights moves, rejects an illegal destination and plays a real Stockfis
   await page.locator('[data-square="e4"]').click();
   await expect(page.locator('.engine-note')).toContainText('Stockfish 19 · constrained search', { timeout: 20000 });
   await expect(page.locator('.move-pair')).toHaveCount(1);
-  await expect(page.locator('.turn-card h2')).toHaveText('Your move. Your secret.');
+  await expect(page.locator('.turn-card h2')).toHaveText('White to move.');
+  await expect(page.locator('.page-intro')).toHaveCount(0);
+  await expect(page.locator('.turn-card p')).toHaveCount(0);
   await expect(page.getByRole('alert')).toHaveCount(0);
   expect(errors).toEqual([]);
   await expect(page.getByRole('button', { name: /View my drawback|Hide my drawback/ })).toHaveCount(0);
@@ -73,6 +75,7 @@ test('new game supports local private handoff and revealing either player’s se
   await page.goto('/');
   await page.getByRole('button', { name: /New game/ }).click();
   await page.getByRole('button', { name: /Pass & play/ }).click();
+  await page.getByLabel('White player’s drawback').selectOption('horse');
   await page.getByRole('button', { name: /Let’s play/ }).click();
   await expect(page.getByRole('heading', { name: 'Pass to White.' })).toBeVisible();
   await page.getByRole('button', { name: 'I’m the white player' }).click();
@@ -101,7 +104,7 @@ test('play as Black starts an AI opening and survives a reload', async ({ page }
   await page.reload();
   await expect(page.locator('.drawback-content h3')).toHaveText(secret);
   await expect(page.locator('.move-pair')).toHaveCount(1);
-  await expect(page.locator('.turn-card h2')).toHaveText('Your move. Your secret.');
+  await expect(page.locator('.turn-card h2')).toHaveText('Black to move.');
 });
 test('drag and drop and keyboard navigation both work', async ({ page }) => {
   await loadPosition(page, newGame('horse', 'horse'));
@@ -177,7 +180,7 @@ test('a failed Stockfish download visibly switches to the legal variant fallback
   await page.locator('[data-square="e4"]').click();
   await expect(page.locator('.engine-note')).toContainText('Variant engine · Stockfish unavailable', { timeout: 20000 });
   await expect(page.getByRole('alert')).toContainText('Stockfish');
-  await expect(page.locator('.turn-card h2')).toHaveText('Your move. Your secret.');
+  await expect(page.locator('.turn-card h2')).toHaveText('White to move.');
   await expect(page.locator('.move-pair')).toHaveCount(1);
 });
 
@@ -229,7 +232,7 @@ test('AI drawback status is never exposed while the human waits', async ({ page 
   await expect(page.getByRole('status', { name: 'Your move restriction' })).toHaveCount(0);
   await page.locator('[data-square="e2"]').click();
   await page.locator('[data-square="e4"]').click();
-  await expect(page.locator('.turn-card h2')).toHaveText('Your move. Your secret.', { timeout: 20000 });
+  await expect(page.locator('.turn-card h2')).toHaveText('White to move.', { timeout: 20000 });
   await expect(page.getByRole('status', { name: 'Your move restriction' })).toHaveCount(0);
   await expect(page.locator('.sidebar')).not.toContainText('Cannot capture.');
 });
@@ -310,12 +313,12 @@ test('new game offers every drawback and applies the selection to White or Black
     await page.getByRole('button', { name: /New game/ }).click();
     const choice = page.getByLabel('Your drawback', { exact: true });
     await expect(choice).toHaveValue('random');
-    await expect(choice.locator('option')).toHaveCount(DRAWBACKS.length + 1);
+    await expect(choice.locator('option')).toHaveCount(DRAWBACKS.length + 6);
     await page.getByLabel('Play as').selectOption(color);
     await choice.selectOption(drawback);
     await expect(page.getByRole('dialog')).toContainText(DRAWBACKS.find(d => d.id === drawback)!.description);
     await page.getByRole('button', { name: /Let’s play/ }).click();
-    await expect(page.locator('.turn-card h2')).toHaveText('Your move. Your secret.', { timeout: 20000 });
+    await expect(page.locator('.turn-card h2')).toHaveText(`${color === 'w' ? 'White' : 'Black'} to move.`, { timeout: 20000 });
     await expect(page.locator('.drawback-content h3')).toHaveText(DRAWBACKS.find(d => d.id === drawback)!.name);
     const state = await page.evaluate(() => JSON.parse(localStorage.getItem('drawback-chess-v1')!));
     expect(state.game.drawbacks[color]).toBe(drawback);

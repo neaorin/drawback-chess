@@ -1,5 +1,6 @@
 import { Chess, validateFen, type Square } from 'chess.js';
 import { fen, fogVisibility, legalMoves, other, square, transition, uci, type Game, type Move, type Color } from './game';
+import { needsEngineBan, rulesFor } from './drawback-state';
 
 export interface EnginePort {
   postMessage(message: string): void;
@@ -73,6 +74,7 @@ export class StockfishClient {
 
 export function stockfishRoots(g: Game): Move[] {
   if (g.drawbacks[g.turn] === 'fog') return [];
+  if (g.drawbacks[g.turn] === 'drag' || g.drawbacks[g.turn] === 'shapeshifter') return [];
   const position = fen(g);
   if (!validateFen(position).ok) return [];
   const chess = new Chess(position);
@@ -125,6 +127,7 @@ export function variantMove(g: Game, depth = 2): Move {
   const visible: Game = { ...g, drawbacks: { ...g.drawbacks, [other(perspective)]: null } };
   function search(state: Game, remaining: number, alpha: number, beta: number): number {
     if (!remaining || state.result) return evaluate(state, perspective);
+    if (needsEngineBan(state)) state = { ...state, drawbacks: { ...state.drawbacks, [state.turn]: null } };
     const moves = ordered(state);
     if (!moves.length) return state.turn === perspective ? -100000 : 100000;
     const maximize = state.turn === perspective;
@@ -139,7 +142,7 @@ export function variantMove(g: Game, depth = 2): Move {
     return best;
   }
   let best: Move | undefined, score = -Infinity;
-  for (const m of ordered(visible)) {
+  for (const m of ordered(g)) {
     const candidate = search(transition(visible, m, false), depth - 1, -Infinity, Infinity);
     if (candidate > score) { score = candidate; best = m; }
   }
@@ -162,4 +165,28 @@ export async function chooseAI(g: Game, client: StockfishClient, milliseconds = 
     console.error('Stockfish unavailable:', error);
     return { move: variantMove(g), source: 'Variant engine · Stockfish unavailable', warning };
   }
+
+}
+
+export async function resolveEngineBan(g: Game, client: StockfishClient, milliseconds = 400):
+  Promise<{ game: Game; source: string; warning?: string }> {
+  if (!needsEngineBan(g)) return { game: g, source: 'Move restriction ready' };
+  const unrestricted = { ...g, drawbacks: { ...g.drawbacks, [g.turn]: null } };
+  if (legalMoves(unrestricted).length === 0) {
+    return {
+      game: { ...g, result: { winner: other(g.turn), reason: 'Ichthyophobe: no legal moves remain' } },
+      source: 'Variant engine · no legal moves',
+    };
+  }
+  const result = await chooseAI(unrestricted, client, milliseconds);
+  const state = rulesFor(g);
+  const next = {
+    ...g, rules: { ...state, engineBans: { ...state.engineBans, [g.turns.w + g.turns.b]: uci(result.move) } },
+  };
+  if (legalMoves(next).length === 0) next.result = { winner: other(g.turn), reason: 'Ichthyophobe: no legal moves remain' };
+  return {
+    game: next, source: `Ichthyophobe · ${result.source}`,
+    warning: result.warning ?? (result.source.startsWith('Stockfish') ? undefined :
+      'Ichthyophobe uses the variant engine in positions Stockfish cannot analyze safely.'),
+  };
 }

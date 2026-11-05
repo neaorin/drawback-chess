@@ -118,7 +118,7 @@ test('Fog of War is selectable and playable against the AI without exposing its 
   await page.locator('[data-square="e2"]').click();
   await expect(page.locator('.legal-square')).toHaveCount(2);
   await page.locator('[data-square="e4"]').click();
-  await expect(page.locator('.turn-card h2')).toHaveText('Your move. Your secret.', { timeout: 20000 });
+  await expect(page.locator('.turn-card h2')).toHaveText('White to move.', { timeout: 20000 });
   await expect(page.locator('.move-history')).toContainText('Hidden move');
   await expect(page.locator('.last-square')).toHaveCount(0);
 });

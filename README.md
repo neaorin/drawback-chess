@@ -16,7 +16,7 @@ when you select a piece, so you never need to police the rules yourself.
 
 Play against a Stockfish-backed computer or a friend on the same device.
 This browser-based, local-first implementation is built with React, TypeScript,
-and Vite, with seven initial drawbacks and automatic game saving.
+and Vite, with all 181 glossary drawbacks and automatic game saving.
 
 ## Run
 
@@ -47,10 +47,28 @@ themes. Attribution, source revision, and license are included in
 `public/pieces/cburnett/CREDITS.md` and `COPYING.txt` and copied into the build.
 
 - Play the computer as either color, or share a device using local pass & play.
+- Use Resign to concede after confirmation. The opponent wins and both drawbacks
+  are revealed. Against the computer you resign your own color, even during its
+  turn; in local play the current player resigns.
 - In the new game modal, choose Random (the default) or a specific drawback.
   Your choice applies to your selected color against the computer, or White in
-  local pass & play. The opponent's drawback is independently random. Reopening
-  the modal resets the choice to Random; cancelling does not change the game.
+  local pass & play. A second selector chooses the opponent's drawback (Black
+  in local play) with the same options, difficulty colors and tooltips.
+  Both default to independently Random. Reopening the modal resets both
+  choices to Random; cancelling does not change the game. Explicitly choosing
+  an opponent rule naturally reveals that choice to the person setting up the
+  game, but does not automatically mark it as revealed in the game UI.
+- The drawback selector labels difficulty with a colored square: Very easy
+  (0–19, dark green), Easy (20–39, green), Medium (40–59, ochre), Hard
+  (60–79, orange-red), and Very hard (80–100, dark red). The selected rule
+  also shows a matching badge. Text labels remain available regardless of
+  platform-specific native dropdown styling.
+- Five difficulty-specific Random options choose only from the selected band.
+  The original Random option still uses all drawbacks. Each player's random
+  selection is independent.
+- Individual drawback options include native hover tooltips explaining their
+  rules. Tooltip display depends on the browser's native select menu; the
+  selected drawback's description is also always shown below the dropdown.
 - Before each move, the right pane automatically shows your current restriction:
   Centralized Command's remaining capture-enabled moves (including this move),
   Even Keeled's current/next capture permission, or Alternator's required piece
@@ -89,7 +107,7 @@ themes. Attribution, source revision, and license are included in
 There is no check, checkmate, stalemate, repetition draw, or fifty-move draw.
 Moving into check, adjacent kings, ignoring threats, and moving pinned pieces
 are legal. You lose when your king is captured or you start a turn without
-legal moves. Castle Doctrine adds its own loss condition.
+legal moves. Individual drawbacks can add further loss conditions.
 
 Castling requires the usual unmoved king/rook and empty intervening squares, but
 attacked squares do not prohibit it. On the opponent's next move only, a move
@@ -99,6 +117,18 @@ otherwise follow piece geometry and the capturing player's drawback. The
 opportunity expires after one reply. Pawn en passant also expires after one reply.
 
 ### Available drawbacks
+
+All **181 drawbacks** in the [Drawback glossary](https://www.drawbackchess.com/glossary)
+are available in the new-game selector and in-game glossary. This includes
+movement and capture restrictions, compulsory moves, randomized terrain and
+turn restrictions, piece-specific memory, deadlines, and additional losses.
+Each catalogue entry stores a `difficulty` from 0 to 100, extracted from the
+archived indicator's `left` percentage with the decimal part discarded. The
+top triangle (`top: 0px; transform: translateX(-50%)`) is the source of truth:
+The catalogue retains subsequent rating corrections (Absolution is 27).
+These are snapshot ratings, not recalculated from local games.
+
+Some examples:
 
 | Drawback | Enforced rule |
 |---|---|
@@ -114,6 +144,60 @@ Centralized Command uses completed personal turns: a king move on turn N enables
 captures on turns N+1, N+2, and N+3. A king's first capture cannot enable itself.
 Alternator classifies a promoting pawn move as a pawn move and castling as a
 non-pawn move. Capturing a promoted rook also triggers Castle Doctrine.
+
+### Parameters, timing, and rule conventions
+
+The archive contains templates rather than every instantiated rule. Targets,
+colors, ranks, piece types, parity, and starting moves are assigned when a game
+is created and substituted into the player's private description. Scheduled
+windows start on a personal move from 6 through 12; square targets are in the
+middle four ranks, Crusade uses one of the center four squares, and Secret Garden
+uses one square immediately in front of the player's starting pawns.
+Blinded by the Sun selects only d4, d5, e4, or e5 in new games. A sun sprite
+marks the target for its player, and for the opponent once revealed (or at game
+over). Local handoff hides the marker. Existing saved targets are preserved.
+Active Volcano selects only c4, d4, e4, f4, c5, d5, e5, or f5 in new games.
+A volcano sprite marks its square with the same reveal and handoff privacy.
+Its four orthogonal neighbors have a striped, dashed danger-zone highlight.
+Existing saved volcano targets are preserved.
+Bridge Over Troubled Water marks ranks 4 and 5 with blue river overlays except
+for d4, e4, d5, e5, which remain normal-looking, legal landing squares.
+These markers follow the same reveal and handoff privacy rules.
+These assignments are saved and do not change when reloading or reviewing.
+Per-turn random restrictions are likewise deterministic for a saved game.
+Unlucky forbids exactly 32 destination squares each turn.
+
+Where the short glossary wording leaves details unspecified, this implementation
+uses these conventions:
+
+- Turns and deadlines count each player's own moves, starting at 1. A
+  start-of-turn condition is checked after the opponent's reply; a "by move N"
+  objective is checked at the end of personal move N.
+- Adjacent includes diagonal neighbors. Distance is Manhattan distance (a
+  four-square diagonal bishop move has distance 8). Left/right and advancement
+  are relative to the player. Square colors and named ranks are absolute.
+  Move-distance comparisons and budgets use the primary piece's displacement
+  (the king for castling). "Captured on" refers to the destination square,
+  including for pawn en passant.
+- Required-if-able rules fall back to other moves only when no preferred move
+  exists. An unconditional requirement with no matching move loses the game.
+- Attacks and defended squares use movement geometry, not the opponent's hidden
+  capture restrictions. Three Check counts opponent moves ending in check,
+  even if the king was already attacked.
+- The river occupies ranks 4 and 5, with crossings restricted to the d/e files;
+  pieces cannot land on the river except on d4, e4, d5, e5 (the bridge).
+  Water rises from each player's home rank.
+  Thunderdome is the central 4-by-4 area.
+- A queen retains its queen identity and artwork under Drag, Queen Disguise,
+  and Shapeshifter; its available destinations enforce its altered movement.
+  Promoted queens use the same player's Shapeshifter form.
+- A king capture wins immediately. Otherwise a move triggering both players'
+  drawback losses penalizes the mover first.
+
+The right pane shows the current restriction or randomized instruction before
+each turn. Targets and schedules remain private until the drawback is revealed.
+The same rules apply to human and computer players, including castling,
+promotions, ordinary en passant, and the variant's king en passant.
 
 ### Fog of War
 
@@ -140,12 +224,10 @@ history are then available. Reloading preserves the perspective. Like other
 secrets in this local-only game, fog is not protected against inspecting
 browser storage or JavaScript state.
 
-The requested [official glossary](https://www.drawbackchess.com/glossary) was
-unavailable during implementation. The original six rule meanings were cross-checked
-against the community [all drawbacks list](https://www.chess.com/forum/view/general/all-drawbacks)
-and [its expanded list](https://www.chess.com/forum/view/general/all-drawbacks?page=3).
-Descriptions and interface are original, not copied site assets.
-Fog of War implements the visibility behavior specified for this game.
+Rule definitions follow the supplied November 4, 2026 archive of the
+[official glossary](https://www.drawbackchess.com/glossary).
+Fog of War intentionally retains the visibility behavior specified for this
+game rather than the archive's simpler hidden-enemy-pieces wording.
 
 ## How the AI works
 
@@ -177,6 +259,14 @@ drawbacks or king-capture rules. When Stockfish is applicable, non-orthodox root
 moves are not searched. The fallback handles those positions but is weaker.
 It models the opponent with no drawback, rather than cheating with the secret.
 There is no claim of optimal play in this variant.
+
+**Ichthyophobe** prepares an engine-selected forbidden move before allowing the
+turn to begin. This also runs for human players. The forbidden choice is saved
+so reload and history cannot reroll it. If Stockfish cannot safely analyze the
+variant position, the variant engine supplies the forbidden move instead and
+the UI explicitly reports that substitution. Computer players with Drag or
+Shapeshifter use variant search because standard Stockfish cannot model their
+own queen geometry. It still does not model an opponent's hidden restriction.
 
 Integration reference: [Stockfish.js browser/UCI documentation](https://github.com/nmrugg/stockfish.js).
 Stockfish.js is GPL-3.0; its license is distributed with the engine, and exact
