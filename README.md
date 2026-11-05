@@ -39,6 +39,82 @@ does not call an external AI service. Deploy the entire `dist` directory to a
 static host that serves `.wasm` as `application/wasm`. No cross-origin isolation
 headers are needed. Do not open the HTML using `file:`: workers need an HTTP host.
 
+## Deploy to Azure Static Web Apps (Free)
+
+The [deployment workflow](.github/workflows/deploy-static-web-app.yml) installs
+dependencies with Node.js 24, runs unit tests and the type-checked production
+build, then uploads `dist` without rebuilding it in Azure. Pushes to `master`
+deploy to production; you can also run the workflow manually on `master` from
+GitHub Actions. Pull requests do not create preview deployments.
+The workflow allows 30 seconds per test for the exhaustive AI searches on
+shared runners.
+The [hosting configuration](public/staticwebapp.config.json) is copied into
+`dist` by Vite and explicitly serves WebAssembly as `application/wasm`.
+
+Install [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) and
+[GitHub CLI](https://cli.github.com/), then run these PowerShell commands.
+Replace the subscription ID and, if desired, the resource names and region.
+The app is created without Azure-generated GitHub integration because this
+repository already supplies the workflow.
+
+```powershell
+az login
+if ($LASTEXITCODE -ne 0) { throw 'Azure login failed.' }
+az account set --subscription '<subscription-id>'
+if ($LASTEXITCODE -ne 0) { throw 'Could not select the Azure subscription.' }
+gh auth login
+if ($LASTEXITCODE -ne 0) { throw 'GitHub login failed.' }
+
+$resourceGroup = 'drawback-chess-rg'
+$appName = 'drawback-chess'
+$location = 'westeurope'
+$repo = 'neaorin/drawback-chess'
+
+az group create --name $resourceGroup --location $location --output none
+if ($LASTEXITCODE -ne 0) { throw 'Resource group creation failed.' }
+
+az staticwebapp create --name $appName --resource-group $resourceGroup `
+  --location $location --sku Free --output none
+if ($LASTEXITCODE -ne 0) { throw 'Static Web App creation failed.' }
+
+$token = az staticwebapp secrets list --name $appName `
+  --resource-group $resourceGroup --query properties.apiKey --output tsv
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($token)) {
+  throw 'Could not retrieve the deployment token.'
+}
+try {
+  $token | gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN --repo $repo
+  if ($LASTEXITCODE -ne 0) { throw 'Could not save the GitHub Actions secret.' }
+} finally {
+  Remove-Variable token
+}
+
+$hostname = az staticwebapp show --name $appName `
+  --resource-group $resourceGroup --query defaultHostname --output tsv
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($hostname)) {
+  throw 'Could not retrieve the app hostname.'
+}
+Write-Host "App URL (available after deployment): https://$hostname"
+```
+
+The deployment token goes directly into a GitHub Actions repository secret;
+do not print it or commit it. No Azure service principal or `AZURE_CREDENTIALS`
+secret is needed.
+
+Once these files are pushed to `master` and the secret is configured, trigger
+the first deployment (or push another commit):
+
+```powershell
+gh workflow run deploy-static-web-app.yml --ref master --repo neaorin/drawback-chess
+if ($LASTEXITCODE -ne 0) { throw 'Could not start the deployment workflow.' }
+```
+
+The Free plan includes an Azure hostname, HTTPS, and 100 GB/month bandwidth per
+subscription, with a 250 MB limit per environment and no SLA or paid bandwidth
+overage. No other Azure services are required. Custom domain registration, if
+you want one, and GitHub Actions usage beyond its included allowance are
+separate costs. See [Azure quotas](https://learn.microsoft.com/azure/static-web-apps/quotas).
+
 ## Play
 
 Pieces use Colin M. L. Burnett's **Cburnett** SVG set, bundled locally and
