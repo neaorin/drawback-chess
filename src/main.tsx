@@ -114,18 +114,23 @@ function App() {
     const frame = board.parentElement!;
     const column = frame.parentElement!;
     const layout = column.parentElement!;
+    const drawback = layout.querySelector<HTMLElement>('.drawback-card')!;
     const fitBoard = () => {
+      const frameBounds = frame.getBoundingClientRect();
       if (window.innerWidth <= 820) {
-        layout.style.removeProperty('--board-max-size');
+        const belowBoard = drawback.getBoundingClientRect().bottom - frameBounds.bottom;
+        const available = Math.max(200, Math.floor(window.innerHeight - (frameBounds.top + window.scrollY) - belowBoard - 16));
+        layout.style.setProperty('--board-max-size', `${available}px`);
         return;
       }
-      const frameBounds = frame.getBoundingClientRect();
       const controlsHeight = column.getBoundingClientRect().bottom - frameBounds.bottom;
       const available = Math.max(0, Math.floor(window.innerHeight - frameBounds.top - controlsHeight - 16));
       layout.style.setProperty('--board-max-size', `${available}px`);
     };
     const observer = new ResizeObserver(fitBoard);
     observer.observe(column);
+    observer.observe(frame);
+    observer.observe(drawback);
     observer.observe(document.querySelector('.site-header')!);
     observer.observe(document.querySelector('.game-actions')!);
     window.addEventListener('resize', fitBoard);
