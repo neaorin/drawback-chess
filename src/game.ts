@@ -232,6 +232,12 @@ export function drawbackMoveInfo(g: Game, color = g.turn): string | null {
       return turn >= start && turn < start + 4
         ? `Battle! Must capture for the next ${start + 4 - turn} moves` : null;
     }
+    case 'windup-toys': {
+      const remaining = 12 - g.turns[color];
+      return remaining > 0
+        ? `Only ${remaining} ${remaining === 1 ? 'move' : 'moves'} until the toys wind down`
+        : 'Toys wound down';
+    }
     case 'expedition': {
       const params = rulesFor(g).params[color];
       return g.turns[color] + 1 === params.move ? `Must move to ${square(params.square)}.` : null;
