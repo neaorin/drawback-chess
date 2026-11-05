@@ -46,5 +46,4 @@ jobs:
           output_location: ''
           skip_app_build: true
           skip_api_build: true
-          deployment_environment: Production
           production_branch: master
