@@ -17,7 +17,10 @@ when you select a piece, so you never need to police the rules yourself.
 Play against a Stockfish-backed computer or a friend on the same device.
 On desktop, the board scales to fit the visible window, including player rows
 and board controls, and resizes with the window. Pieces fill 92% of their
-squares. Mobile keeps a full-width board with the sidebar stacked below it.
+squares. Mobile uses compact player rows and places your drawback directly below
+the board, ahead of history and other secondary controls. The board stays
+full-width when space allows and shrinks on shorter screens to keep the complete
+drawback visible without scrolling (with a 200px minimum board frame).
 The board's light and dark square colors remain consistent in both UI themes.
 When a game finishes, a dismissible results dialog shows the winner, reason,
 and both players' drawbacks with difficulty levels beside their names. Review the

@@ -89,21 +89,54 @@ test('board refits after resizing the window', async ({ page }) => {
   expect(after!.width).toBeLessThan(before!.width);
 });
 
-test('mobile retains a full-width board and stacked sidebar', async ({ page }) => {
+for (const [width, height] of [[320, 568], [360, 640], [390, 660], [390, 844], [430, 740], [768, 1024]]) {
+  test(`mobile shows the complete drawback without scrolling at ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.addInitScript(game => {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'ai', human: 'w', flipped: false, strength: 200,
+      }));
+    }, newGame('bridge-over-troubled-water', 'horse'));
+    await page.goto('/');
+    await expect.poll(async () => {
+      const card = await page.locator('.drawback-card').boundingBox();
+      return card!.y + card!.height;
+    }).toBeLessThanOrEqual(height - 15);
+    const board = await page.locator('.board').boundingBox();
+    const card = await page.locator('.drawback-card').boundingBox();
+    expect(board!.width).toBeGreaterThanOrEqual(190);
+    if (width === 390 && height === 844) expect(board!.width).toBeGreaterThan(330);
+    expect(Math.abs(board!.width - board!.height)).toBeLessThan(1);
+    expect(card!.y).toBeGreaterThan(board!.y + board!.height);
+    for (const selector of ['.history-navigation', '.board-toolbar', '.turn-card']) {
+      const controls = await page.locator(selector).boundingBox();
+      expect(controls!.y).toBeGreaterThanOrEqual(card!.y + card!.height);
+    }
+    await expect(page.locator('.drawback-content h3')).toHaveText('Bridge Over Troubled Water');
+    const piece = await page.locator('.board-piece .piece').first().boundingBox();
+    const cell = await page.locator('.square').first().boundingBox();
+    expect(piece!.width / cell!.width).toBeCloseTo(.92, 2);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    const toggle = page.getByRole('switch', { name: 'Dark theme', exact: true });
+    const bounds = await toggle.boundingBox();
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+    await toggle.click();
+    await expect(toggle).toBeChecked();
+    await page.getByRole('button', { name: 'Reveal to opponent', exact: false }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+  });
+}
+
+test('mobile board refits when browser chrome reduces the visible height', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  const board = await page.locator('.board').boundingBox();
-  const sidebar = await page.locator('.sidebar').boundingBox();
-  expect(board!.width).toBeGreaterThan(330);
-  expect(sidebar!.y).toBeGreaterThan(board!.y + board!.height);
-  const piece = await page.locator('.board-piece .piece').first().boundingBox();
-  const cell = await page.locator('.square').first().boundingBox();
-  expect(piece!.width / cell!.width).toBeCloseTo(.92, 2);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
-  const toggle = page.getByRole('switch', { name: 'Dark theme', exact: true });
-  await expect(toggle).toBeVisible();
-  const bounds = await toggle.boundingBox();
-  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
-  await toggle.click();
-  await expect(toggle).toBeChecked();
+  const before = await page.locator('.board').boundingBox();
+  await page.setViewportSize({ width: 390, height: 600 });
+  await expect.poll(async () => {
+    const card = await page.locator('.drawback-card').boundingBox();
+    return card!.y + card!.height;
+  }).toBeLessThanOrEqual(585);
+  const after = await page.locator('.board').boundingBox();
+  expect(after!.width).toBeLessThan(before!.width);
 });
