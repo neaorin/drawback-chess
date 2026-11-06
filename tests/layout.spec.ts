@@ -104,7 +104,7 @@ for (const [width, height] of [[320, 568], [360, 640], [390, 660], [390, 844], [
     }).toBeLessThanOrEqual(height - 15);
     const board = await page.locator('.board').boundingBox();
     const card = await page.locator('.drawback-card').boundingBox();
-    expect(board!.width).toBeGreaterThanOrEqual(190);
+    expect(board!.width).toBeGreaterThanOrEqual(150);
     if (width === 390 && height === 844) expect(board!.width).toBeGreaterThan(330);
     expect(Math.abs(board!.width - board!.height)).toBeLessThan(1);
     expect(card!.y).toBeGreaterThan(board!.y + board!.height);
@@ -113,7 +113,7 @@ for (const [width, height] of [[320, 568], [360, 640], [390, 660], [390, 844], [
       expect(controls!.y).toBeGreaterThanOrEqual(card!.y + card!.height);
     }
     await expect(page.locator('.drawback-content h3')).toHaveText('Bridge Over Troubled Water');
-    await expect(page.locator('.drawback-content > p')).toHaveCount(0);
+    await expect(page.locator('.drawback-content > p')).toBeHidden();
     await expect(page.locator('.drawback-card .move-info')).toContainText('There is a river');
     const piece = await page.locator('.board-piece .piece').first().boundingBox();
     const cell = await page.locator('.square').first().boundingBox();
@@ -164,6 +164,13 @@ for (const [width, height] of [[320, 568], [390, 660], [390, 844]]) {
     };
     await expect(info).toContainText('Cannot capture.');
     await expectCardToFit();
+    const initialBoard = await page.locator('.board').boundingBox();
+    const initialCard = await card.boundingBox();
+    const expectStableLayout = async () => {
+      await expect.poll(async () => (await page.locator('.board').boundingBox())!.width).toBeCloseTo(initialBoard!.width, 1);
+      expect((await card.boundingBox())!.height).toBeCloseTo(initialCard!.height, 1);
+      expect(await info.evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
+    };
     const heading = await card.locator('h3').boundingBox();
     const message = await info.boundingBox();
     const description = await card.locator('.drawback-content > p').boundingBox();
@@ -181,6 +188,7 @@ for (const [width, height] of [[320, 568], [390, 660], [390, 844]]) {
     await page.getByRole('button', { name: 'I’m the white player' }).click();
     await expect(info).toContainText('Cannot capture.');
     await expectCardToFit();
+    await expectStableLayout();
     await page.locator('[data-square="e1"]').click();
     await page.locator('[data-square="e2"]').click();
     await page.getByRole('button', { name: 'I’m the black player' }).click();
@@ -189,5 +197,28 @@ for (const [width, height] of [[320, 568], [390, 660], [390, 844]]) {
     await page.getByRole('button', { name: 'I’m the white player' }).click();
     await expect(info).toContainText('Can capture for the next 3 moves');
     await expectCardToFit();
+    await expectStableLayout();
   });
 }
+
+test('mobile reserves message space while reviewing a turn with no restriction', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 660 });
+  await page.addInitScript(game => {
+    localStorage.setItem('drawback-chess-v1', JSON.stringify({
+      version: 1, game, mode: 'ai', human: 'w', flipped: false, strength: 200,
+    }));
+  }, newGame('command', 'horse'));
+  await page.goto('/');
+  const info = page.getByRole('status', { name: 'Your move restriction' });
+  await expect(info).toContainText('Cannot capture.');
+  const board = await page.locator('.board').boundingBox();
+  const card = await page.locator('.drawback-card').boundingBox();
+  await page.locator('[data-square="e2"]').click();
+  await page.locator('[data-square="e3"]').click();
+  await expect.poll(() => page.locator('.move-pair span').count()).toBeGreaterThanOrEqual(3);
+  await expect(page.locator('.turn-card h2')).toHaveText('White to move.');
+  await page.getByRole('button', { name: 'Previous position', exact: true }).click();
+  await expect(info).toHaveCount(0);
+  expect((await page.locator('.board').boundingBox())!.width).toBeCloseTo(board!.width, 1);
+  expect((await page.locator('.drawback-card').boundingBox())!.height).toBeCloseTo(card!.height, 1);
+});

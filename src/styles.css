@@ -182,6 +182,8 @@ h2 { font-size: 24px; font-weight: 620; letter-spacing: -.7px; line-height: 1.25
 .turn-card .primary-button { margin-top: 14px; }
 .move-info { width: 100%; margin: 0 0 8px; padding: 8px 10px; border-left: 3px solid var(--cp-accent); border-radius: 6px; background: var(--cp-accent-soft); }
 .drawback-content .move-info p { margin: 0; font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--cp-text); }
+.move-info-slot { width: 100%; }
+.move-info-sizing, .duplicate-description { display: none; }
 .drawback-card { border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); overflow: hidden; }
 .card-heading { padding: 15px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--cp-border); }
 .card-heading > span:first-child { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 650; }
@@ -307,7 +309,10 @@ select { width: 100%; padding: 12px; border: 1px solid var(--cp-border); border-
   .drawback-card .secret-tag, .drawback-card .reveal-row > span { display: none; }
   .drawback-card .reveal-row { position: absolute; top: 0; right: 0; padding: 0 12px; min-height: 36px; border: 0; background: none; }
   .drawback-card .reveal-row button { min-height: 36px; }
-  .move-info { margin: 4px 0 6px; padding: 6px 8px; }
+  .move-info-slot { position: relative; margin: 4px 0 6px; min-height: 61.5px; }
+  .move-info-sizing { display: block; visibility: hidden; padding: 6px 8px; border-left: 3px solid transparent; font-size: 11px; font-weight: 600; line-height: 1.5; }
+  .move-info { position: absolute; inset: 0; margin: 0; padding: 6px 8px; overflow-y: auto; }
+  .drawback-content .duplicate-description { display: block; visibility: hidden; }
   .drawback-content .move-info p { font-size: 11px; }
   .history-navigation { order: 4; margin-top: 0; gap: 8px; }
   .history-navigation > button:not(.text-button) { min-width: 44px; min-height: 44px; }
@@ -369,6 +374,7 @@ select { width: 100%; padding: 12px; border: 1px solid var(--cp-border); border-
 @media (max-width: 480px) and (max-height: 600px) {
   .game-layout { gap: 4px; }
   .drawback-content { padding-block: 4px; }
-  .move-info { margin-block: 2px 4px; padding-block: 4px; }
+  .move-info-slot { margin-block: 2px 4px; min-height: 57.5px; }
+  .move-info, .move-info-sizing { padding-block: 4px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
