@@ -21,6 +21,10 @@ squares. Mobile uses compact player rows and places your drawback directly below
 the board, ahead of history and other secondary controls. The board stays
 full-width when space allows and shrinks on shorter screens to keep the complete
 drawback visible without scrolling (with a 200px minimum board frame).
+When present, the situational move restriction appears in a compact tinted strip
+inside your drawback card, beneath its name and above the full rule. Mobile board
+sizing includes this message as it appears, changes, or disappears.
+If the message repeats the full rule exactly, the rule is shown only once.
 The board's light and dark square colors remain consistent in both UI themes.
 When a game finishes, a dismissible results dialog shows the winner, reason,
 and both players' drawbacks with difficulty levels beside their names. Review the

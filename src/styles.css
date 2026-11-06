@@ -180,8 +180,8 @@ main { margin: 0 auto; }
 h2 { font-size: 24px; font-weight: 620; letter-spacing: -.7px; line-height: 1.25; margin: 14px 0 8px; }
 .turn-card p { color: var(--cp-text-soft); font-size: 12px; line-height: 1.6; max-width: 290px; margin: 0; }
 .turn-card .primary-button { margin-top: 14px; }
-.move-info { padding: 16px 18px; border: 1px solid var(--cp-border); border-left: 3px solid var(--cp-accent); border-radius: 10px; background: var(--cp-accent-soft); }
-.move-info p { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.6; }
+.move-info { width: 100%; margin: 0 0 8px; padding: 8px 10px; border-left: 3px solid var(--cp-accent); border-radius: 6px; background: var(--cp-accent-soft); }
+.drawback-content .move-info p { margin: 0; font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--cp-text); }
 .drawback-card { border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); overflow: hidden; }
 .card-heading { padding: 15px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--cp-border); }
 .card-heading > span:first-child { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 650; }
@@ -307,7 +307,8 @@ select { width: 100%; padding: 12px; border: 1px solid var(--cp-border); border-
   .drawback-card .secret-tag, .drawback-card .reveal-row > span { display: none; }
   .drawback-card .reveal-row { position: absolute; top: 0; right: 0; padding: 0 12px; min-height: 36px; border: 0; background: none; }
   .drawback-card .reveal-row button { min-height: 36px; }
-  .move-info { order: 2; }
+  .move-info { margin: 4px 0 6px; padding: 6px 8px; }
+  .drawback-content .move-info p { font-size: 11px; }
   .history-navigation { order: 4; margin-top: 0; gap: 8px; }
   .history-navigation > button:not(.text-button) { min-width: 44px; min-height: 44px; }
   .board-toolbar { order: 5; margin-top: 0; padding: 0; }
@@ -364,5 +365,10 @@ select { width: 100%; padding: 12px; border: 1px solid var(--cp-border); border-
   .glossary { grid-template-columns: 1fr; }
   footer { font-size: 9px; gap: 16px; align-items: center; }
   footer > span:last-child { max-width: 125px; line-height: 1.6; text-align: right; gap: 6px; }
+}
+@media (max-width: 480px) and (max-height: 600px) {
+  .game-layout { gap: 4px; }
+  .drawback-content { padding-block: 4px; }
+  .move-info { margin-block: 2px 4px; padding-block: 4px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
