@@ -170,6 +170,7 @@ function App() {
   const threatenedKings = visibleKingAttacks(visibilityGame, viewer);
   const targets = selected === null || reviewPosition ? [] : moves.filter(m => m.from === selected);
   const ownDrawback = DRAWBACKS.find(d => d.id === game.drawbacks[viewer])!;
+  const ownDescription = drawbackDescription(displayedGame, viewer);
   const opponentDrawback = DRAWBACKS.find(d => d.id === game.drawbacks[other(viewer)])!;
   const last = displayedGame.history.at(-1)?.move;
   const lastColor = displayedGame.history.at(-1)?.color;
@@ -415,9 +416,8 @@ function App() {
         </section>
         <aside className="sidebar">
           <section className="turn-card"><div className="eyebrow">MOVE {Math.floor(viewPly / 2) + 1}<span className="live-tag">{reviewPosition ? 'REVIEW' : game.result ? 'FINISHED' : 'IN PLAY'}</span></div><h2 aria-live="polite">{turnText}</h2>{(reviewPosition || game.result) && <p>{reviewPosition ? 'Read-only position. Use Left / Right to browse, or return to the latest move to play.' : game.result?.reason}</p>}{game.result && <button className="primary-button" onClick={newMatch}>Play again <Icon name="arrow" /></button>}</section>
-          {moveInfo && <section className="move-info" role="status" aria-label="Your move restriction"><p>{moveInfo}</p></section>}
           <section className="drawback-card"><div className="card-heading"><span><Icon name="shield" /> Your drawback</span><span className="secret-tag">{revealed[viewer] ? 'REVEALED' : 'ONLY YOU'}</span></div>
-            <div className="drawback-content">{!handoff && !(mode === 'local' && sliding) && <><div className="eyebrow">{ownDrawback.tag}</div><h3>{ownDrawback.name}</h3><p>{drawbackDescription(displayedGame, viewer)}</p></>}</div>
+            <div className="drawback-content">{!handoff && !(mode === 'local' && sliding) && <><div className="eyebrow">{ownDrawback.tag}</div><h3>{ownDrawback.name}</h3>{moveInfo && <div className="move-info" role="status" aria-label="Your move restriction"><p>{moveInfo}</p></div>}{moveInfo !== ownDescription && <p>{ownDescription}</p>}</>}</div>
             <div className="reveal-row"><span>{revealed[viewer] ? 'Your opponent can see your rule.' : 'Feeling transparent?'}</span><button disabled={revealed[viewer] || handoff} onClick={() => setConfirmReveal(viewer)}>{revealed[viewer] ? 'Revealed' : 'Reveal to opponent'} <Icon name="arrow" /></button></div>
           </section>
           <section className="opponent-card"><div className="opponent-symbol"><Icon name={revealed[other(viewer)] ? 'eye' : 'shield'} /></div><div><h3>{revealed[other(viewer)] ? opponentDrawback.name : 'Their drawback? A mystery.'}</h3><p>{revealed[other(viewer)] ? drawbackDescription(displayedGame, other(viewer)) : 'Watch their moves. Read between the squares.'}</p></div></section>

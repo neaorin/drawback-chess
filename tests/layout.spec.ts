@@ -113,6 +113,8 @@ for (const [width, height] of [[320, 568], [360, 640], [390, 660], [390, 844], [
       expect(controls!.y).toBeGreaterThanOrEqual(card!.y + card!.height);
     }
     await expect(page.locator('.drawback-content h3')).toHaveText('Bridge Over Troubled Water');
+    await expect(page.locator('.drawback-content > p')).toHaveCount(0);
+    await expect(page.locator('.drawback-card .move-info')).toContainText('There is a river');
     const piece = await page.locator('.board-piece .piece').first().boundingBox();
     const cell = await page.locator('.square').first().boundingBox();
     expect(piece!.width / cell!.width).toBeCloseTo(.92, 2);
@@ -140,3 +142,52 @@ test('mobile board refits when browser chrome reduces the visible height', async
   const after = await page.locator('.board').boundingBox();
   expect(after!.width).toBeLessThan(before!.width);
 });
+
+for (const [width, height] of [[320, 568], [390, 660], [390, 844]]) {
+  test(`situational message fits inside the mobile drawback card at ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.addInitScript(game => {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+    }, newGame('command', 'horse'));
+    await page.goto('/');
+    await page.getByRole('button', { name: 'I’m the white player' }).click();
+    const card = page.locator('.drawback-card');
+    const info = card.getByRole('status', { name: 'Your move restriction' });
+    const expectCardToFit = async () => {
+      await expect.poll(async () => {
+        const bounds = await card.boundingBox();
+        return bounds!.y + bounds!.height;
+      }).toBeLessThanOrEqual(height - 15);
+      expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    };
+    await expect(info).toContainText('Cannot capture.');
+    await expectCardToFit();
+    const heading = await card.locator('h3').boundingBox();
+    const message = await info.boundingBox();
+    const description = await card.locator('.drawback-content > p').boundingBox();
+    expect(message!.y).toBeGreaterThanOrEqual(heading!.y + heading!.height);
+    expect(message!.y + message!.height).toBeLessThanOrEqual(description!.y);
+
+    await page.locator('[data-square="e2"]').click();
+    await page.locator('[data-square="e3"]').click();
+    await expect(info).toHaveCount(0);
+    await page.getByRole('button', { name: 'I’m the black player' }).click();
+    await expect(info).toHaveCount(0);
+    await expectCardToFit();
+    await page.locator('[data-square="a7"]').click();
+    await page.locator('[data-square="a6"]').click();
+    await page.getByRole('button', { name: 'I’m the white player' }).click();
+    await expect(info).toContainText('Cannot capture.');
+    await expectCardToFit();
+    await page.locator('[data-square="e1"]').click();
+    await page.locator('[data-square="e2"]').click();
+    await page.getByRole('button', { name: 'I’m the black player' }).click();
+    await page.locator('[data-square="a6"]').click();
+    await page.locator('[data-square="a5"]').click();
+    await page.getByRole('button', { name: 'I’m the white player' }).click();
+    await expect(info).toContainText('Can capture for the next 3 moves');
+    await expectCardToFit();
+  });
+}
