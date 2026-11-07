@@ -18,17 +18,18 @@ Play against a Stockfish-backed computer or a friend on the same device.
 On desktop, the board scales to fit the visible window, including player rows
 and board controls, and resizes with the window. Pieces fill 92% of their
 squares. Mobile uses compact player rows and places your drawback directly below
-the board, ahead of history and other secondary controls. The board stays
-full-width when space allows and shrinks on shorter screens to keep the complete
-drawback visible without scrolling (with a 160px minimum board frame on short screens).
+the board, ahead of history and other secondary controls. The board always fills
+the available content width, including at the top of the page. Scrolling or browser
+toolbar height changes do not resize it; changing the viewport width does.
+On shorter screens, seeing the drawback card may require scrolling.
 When present, the situational move restriction appears in a compact tinted strip
-inside your drawback card, beneath its name and above the full rule. Mobile reserves
+inside your drawback card, below the unchanging full rule. Mobile reserves
 message space based on the rule text, with room for at least three message lines,
 even when no message is shown. Changing or hiding the message does not resize the
-board; changing the viewport still refits it. Unusually long messages can scroll
+board. Unusually long messages can scroll
 within their reserved area rather than shifting the board.
-If the message repeats the full rule exactly, the rule is shown only once; its
-normal description space remains reserved on mobile.
+If the message repeats the full rule exactly, only the description is shown.
+Empty message space remains below the description, never between it and the name.
 The board's light and dark square colors remain consistent in both UI themes.
 When a game finishes, a dismissible results dialog shows the winner, reason,
 and both players' drawbacks with difficulty levels beside their names. Review the

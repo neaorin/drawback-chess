@@ -114,15 +114,12 @@ function App() {
     const frame = board.parentElement!;
     const column = frame.parentElement!;
     const layout = column.parentElement!;
-    const drawback = layout.querySelector<HTMLElement>('.drawback-card')!;
     const fitBoard = () => {
-      const frameBounds = frame.getBoundingClientRect();
       if (window.innerWidth <= 820) {
-        const belowBoard = drawback.getBoundingClientRect().bottom - frameBounds.bottom;
-        const available = Math.max(160, Math.floor(window.innerHeight - (frameBounds.top + window.scrollY) - belowBoard - 16));
-        layout.style.setProperty('--board-max-size', `${available}px`);
+        layout.style.removeProperty('--board-max-size');
         return;
       }
+      const frameBounds = frame.getBoundingClientRect();
       const controlsHeight = column.getBoundingClientRect().bottom - frameBounds.bottom;
       const available = Math.max(0, Math.floor(window.innerHeight - frameBounds.top - controlsHeight - 16));
       layout.style.setProperty('--board-max-size', `${available}px`);
@@ -130,7 +127,6 @@ function App() {
     const observer = new ResizeObserver(fitBoard);
     observer.observe(column);
     observer.observe(frame);
-    observer.observe(drawback);
     observer.observe(document.querySelector('.site-header')!);
     observer.observe(document.querySelector('.game-actions')!);
     window.addEventListener('resize', fitBoard);
@@ -417,7 +413,7 @@ function App() {
         <aside className="sidebar">
           <section className="turn-card"><div className="eyebrow">MOVE {Math.floor(viewPly / 2) + 1}<span className="live-tag">{reviewPosition ? 'REVIEW' : game.result ? 'FINISHED' : 'IN PLAY'}</span></div><h2 aria-live="polite">{turnText}</h2>{(reviewPosition || game.result) && <p>{reviewPosition ? 'Read-only position. Use Left / Right to browse, or return to the latest move to play.' : game.result?.reason}</p>}{game.result && <button className="primary-button" onClick={newMatch}>Play again <Icon name="arrow" /></button>}</section>
           <section className="drawback-card"><div className="card-heading"><span><Icon name="shield" /> Your drawback</span><span className="secret-tag">{revealed[viewer] ? 'REVEALED' : 'ONLY YOU'}</span></div>
-            <div className="drawback-content">{!handoff && !(mode === 'local' && sliding) && <><div className="eyebrow">{ownDrawback.tag}</div><h3>{ownDrawback.name}</h3><div className="move-info-slot"><span className="move-info-sizing" aria-hidden="true">{ownDescription}</span>{moveInfo && <div className="move-info" role="status" aria-label="Your move restriction"><p>{moveInfo}</p></div>}</div><p className={moveInfo === ownDescription ? 'duplicate-description' : undefined}>{ownDescription}</p></>}</div>
+            <div className="drawback-content">{!handoff && !(mode === 'local' && sliding) && <><div className="eyebrow">{ownDrawback.tag}</div><h3>{ownDrawback.name}</h3><p>{ownDescription}</p><div className="move-info-slot"><span className="move-info-sizing" aria-hidden="true">{ownDescription}</span>{moveInfo && moveInfo !== ownDescription && <div className="move-info" role="status" aria-label="Your move restriction"><p>{moveInfo}</p></div>}</div></>}</div>
             <div className="reveal-row"><span>{revealed[viewer] ? 'Your opponent can see your rule.' : 'Feeling transparent?'}</span><button disabled={revealed[viewer] || handoff} onClick={() => setConfirmReveal(viewer)}>{revealed[viewer] ? 'Revealed' : 'Reveal to opponent'} <Icon name="arrow" /></button></div>
           </section>
           <section className="opponent-card"><div className="opponent-symbol"><Icon name={revealed[other(viewer)] ? 'eye' : 'shield'} /></div><div><h3>{revealed[other(viewer)] ? opponentDrawback.name : 'Their drawback? A mystery.'}</h3><p>{revealed[other(viewer)] ? drawbackDescription(displayedGame, other(viewer)) : 'Watch their moves. Read between the squares.'}</p></div></section>

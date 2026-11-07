@@ -183,7 +183,7 @@ h2 { font-size: 24px; font-weight: 620; letter-spacing: -.7px; line-height: 1.25
 .move-info { width: 100%; margin: 0 0 8px; padding: 8px 10px; border-left: 3px solid var(--cp-accent); border-radius: 6px; background: var(--cp-accent-soft); }
 .drawback-content .move-info p { margin: 0; font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--cp-text); }
 .move-info-slot { width: 100%; }
-.move-info-sizing, .duplicate-description { display: none; }
+.move-info-sizing { display: none; }
 .drawback-card { border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); overflow: hidden; }
 .card-heading { padding: 15px 18px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--cp-border); }
 .card-heading > span:first-child { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 650; }
@@ -294,7 +294,7 @@ select { width: 100%; padding: 12px; border: 1px solid var(--cp-border); border-
   .avatar .piece { font-size: 26px; }
   .player-name { gap: 2px; }
   .player-name > span { display: none; }
-  .board-frame { width: min(100%, var(--board-max-size, 100%)); justify-self: center; }
+  .board-frame { width: 100%; }
   .piece { font-size: clamp(30px, 8.5vw, 65px); }
   .turn-card { order: 3; min-height: auto; padding-bottom: 0; }
   .turn-card p { max-width: 100%; }
@@ -312,7 +312,6 @@ select { width: 100%; padding: 12px; border: 1px solid var(--cp-border); border-
   .move-info-slot { position: relative; margin: 4px 0 6px; min-height: 61.5px; }
   .move-info-sizing { display: block; visibility: hidden; padding: 6px 8px; border-left: 3px solid transparent; font-size: 11px; font-weight: 600; line-height: 1.5; }
   .move-info { position: absolute; inset: 0; margin: 0; padding: 6px 8px; overflow-y: auto; }
-  .drawback-content .duplicate-description { display: block; visibility: hidden; }
   .drawback-content .move-info p { font-size: 11px; }
   .history-navigation { order: 4; margin-top: 0; gap: 8px; }
   .history-navigation > button:not(.text-button) { min-width: 44px; min-height: 44px; }

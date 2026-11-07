@@ -90,7 +90,7 @@ test('board refits after resizing the window', async ({ page }) => {
 });
 
 for (const [width, height] of [[320, 568], [360, 640], [390, 660], [390, 844], [430, 740], [768, 1024]]) {
-  test(`mobile shows the complete drawback without scrolling at ${width}x${height}`, async ({ page }) => {
+  test(`mobile board fills the available width at ${width}x${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height });
     await page.addInitScript(game => {
       localStorage.setItem('drawback-chess-v1', JSON.stringify({
@@ -98,14 +98,11 @@ for (const [width, height] of [[320, 568], [360, 640], [390, 660], [390, 844], [
       }));
     }, newGame('bridge-over-troubled-water', 'horse'));
     await page.goto('/');
-    await expect.poll(async () => {
-      const card = await page.locator('.drawback-card').boundingBox();
-      return card!.y + card!.height;
-    }).toBeLessThanOrEqual(height - 15);
     const board = await page.locator('.board').boundingBox();
     const card = await page.locator('.drawback-card').boundingBox();
-    expect(board!.width).toBeGreaterThanOrEqual(150);
-    if (width === 390 && height === 844) expect(board!.width).toBeGreaterThan(330);
+    const frame = await page.locator('.board-frame').boundingBox();
+    expect(frame!.width).toBeCloseTo(card!.width, 1);
+    expect(frame!.x).toBeCloseTo(card!.x, 1);
     expect(Math.abs(board!.width - board!.height)).toBeLessThan(1);
     expect(card!.y).toBeGreaterThan(board!.y + board!.height);
     for (const selector of ['.history-navigation', '.board-toolbar', '.turn-card']) {
@@ -113,8 +110,8 @@ for (const [width, height] of [[320, 568], [360, 640], [390, 660], [390, 844], [
       expect(controls!.y).toBeGreaterThanOrEqual(card!.y + card!.height);
     }
     await expect(page.locator('.drawback-content h3')).toHaveText('Bridge Over Troubled Water');
-    await expect(page.locator('.drawback-content > p')).toBeHidden();
-    await expect(page.locator('.drawback-card .move-info')).toContainText('There is a river');
+    await expect(page.locator('.drawback-content > p')).toContainText('There is a river');
+    await expect(page.locator('.drawback-card .move-info')).toHaveCount(0);
     const piece = await page.locator('.board-piece .piece').first().boundingBox();
     const cell = await page.locator('.square').first().boundingBox();
     expect(piece!.width / cell!.width).toBeCloseTo(.92, 2);
@@ -125,22 +122,24 @@ for (const [width, height] of [[320, 568], [360, 640], [390, 660], [390, 844], [
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
     await toggle.click();
     await expect(toggle).toBeChecked();
+    await page.evaluate(() => window.scrollTo(0, 100));
+    expect((await page.locator('.board').boundingBox())!.width).toBeCloseTo(board!.width, 1);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    expect((await page.locator('.board').boundingBox())!.width).toBeCloseTo(board!.width, 1);
     await page.getByRole('button', { name: 'Reveal to opponent', exact: false }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
   });
 }
 
-test('mobile board refits when browser chrome reduces the visible height', async ({ page }) => {
+test('mobile board ignores height changes and refits to width changes', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   const before = await page.locator('.board').boundingBox();
   await page.setViewportSize({ width: 390, height: 600 });
-  await expect.poll(async () => {
-    const card = await page.locator('.drawback-card').boundingBox();
-    return card!.y + card!.height;
-  }).toBeLessThanOrEqual(585);
   const after = await page.locator('.board').boundingBox();
-  expect(after!.width).toBeLessThan(before!.width);
+  expect(after!.width).toBeCloseTo(before!.width, 1);
+  await page.setViewportSize({ width: 430, height: 600 });
+  expect((await page.locator('.board').boundingBox())!.width).toBeGreaterThan(before!.width);
 });
 
 for (const [width, height] of [[320, 568], [390, 660], [390, 844]]) {
@@ -155,15 +154,11 @@ for (const [width, height] of [[320, 568], [390, 660], [390, 844]]) {
     await page.getByRole('button', { name: 'I’m the white player' }).click();
     const card = page.locator('.drawback-card');
     const info = card.getByRole('status', { name: 'Your move restriction' });
-    const expectCardToFit = async () => {
-      await expect.poll(async () => {
-        const bounds = await card.boundingBox();
-        return bounds!.y + bounds!.height;
-      }).toBeLessThanOrEqual(height - 15);
-      expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    const expectMessageToFit = async () => {
+      expect(await info.evaluate(element => element.scrollHeight <= element.clientHeight)).toBe(true);
     };
     await expect(info).toContainText('Cannot capture.');
-    await expectCardToFit();
+    await expectMessageToFit();
     const initialBoard = await page.locator('.board').boundingBox();
     const initialCard = await card.boundingBox();
     const expectStableLayout = async () => {
@@ -174,20 +169,22 @@ for (const [width, height] of [[320, 568], [390, 660], [390, 844]]) {
     const heading = await card.locator('h3').boundingBox();
     const message = await info.boundingBox();
     const description = await card.locator('.drawback-content > p').boundingBox();
-    expect(message!.y).toBeGreaterThanOrEqual(heading!.y + heading!.height);
-    expect(message!.y + message!.height).toBeLessThanOrEqual(description!.y);
+    expect(description!.y).toBeGreaterThanOrEqual(heading!.y + heading!.height);
+    expect(message!.y).toBeGreaterThanOrEqual(description!.y + description!.height);
 
     await page.locator('[data-square="e2"]').click();
     await page.locator('[data-square="e3"]').click();
     await expect(info).toHaveCount(0);
     await page.getByRole('button', { name: 'I’m the black player' }).click();
     await expect(info).toHaveCount(0);
-    await expectCardToFit();
+    const noMessageHeading = await card.locator('h3').boundingBox();
+    const noMessageDescription = await card.locator('.drawback-content > p').boundingBox();
+    expect(noMessageDescription!.y - noMessageHeading!.y - noMessageHeading!.height).toBeLessThan(10);
     await page.locator('[data-square="a7"]').click();
     await page.locator('[data-square="a6"]').click();
     await page.getByRole('button', { name: 'I’m the white player' }).click();
     await expect(info).toContainText('Cannot capture.');
-    await expectCardToFit();
+    await expectMessageToFit();
     await expectStableLayout();
     await page.locator('[data-square="e1"]').click();
     await page.locator('[data-square="e2"]').click();
@@ -196,7 +193,7 @@ for (const [width, height] of [[320, 568], [390, 660], [390, 844]]) {
     await page.locator('[data-square="a5"]').click();
     await page.getByRole('button', { name: 'I’m the white player' }).click();
     await expect(info).toContainText('Can capture for the next 3 moves');
-    await expectCardToFit();
+    await expectMessageToFit();
     await expectStableLayout();
   });
 }
