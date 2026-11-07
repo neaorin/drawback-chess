@@ -216,6 +216,8 @@ export function drawbackMoveInfo(g: Game, color = g.turn): string | null {
       return (g.turns[color] + 1) % 2 === 0
         ? 'Can capture this move. Cannot capture next move.'
         : 'Cannot capture this move. Can capture next move.';
+    case 'oddball':
+      return (g.turns[color] + 1) % 2 === 0 ? 'Cannot capture' : null;
     case 'alternator':
       return g.lastPawn[color] === null ? 'May move a pawn or a non-pawn.' :
         g.lastPawn[color] ? 'Must move a non-pawn.' : 'Must move a pawn.';
