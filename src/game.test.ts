@@ -75,6 +75,17 @@ describe('before-move drawback information', () => {
     g.lastPawn[color] = false;
     expect(drawbackMoveInfo(g)).toBe('Must move a pawn.');
   });
+  it.each(['w', 'b'] as const)('Oddball only shows Cannot capture on even personal moves for %s', color => {
+    const g = position({ e1: 'wk', h8: 'bk', a1: `${color}r`, a8: `${color === 'w' ? 'b' : 'w'}r` }, 'oddball', color);
+    for (let completed = 0; completed < 4; completed++) {
+      g.turns[color] = completed;
+      expect(drawbackMoveInfo(g)).toBe(completed % 2 === 1 ? 'Cannot capture' : null);
+      expect(has(g, 'a1', 'a8')).toBe(completed % 2 === 0);
+      expect(drawbackMoveInfo(g, color === 'w' ? 'b' : 'w')).toBeNull();
+    }
+    g.result = { winner: color, reason: 'King captured' };
+    expect(drawbackMoveInfo(g)).toBeNull();
+  });
   it('omits unsupported, off-turn and finished-game statuses', () => {
     const g = newGame('horse', 'command');
     expect(drawbackMoveInfo(g)).toBeNull();
