@@ -305,12 +305,24 @@ describe('positional boundaries and geometry', () => {
       expect(selected(ctx)).toContain('b1a3');
     });
 
-    it('requires knights leaping river squares to have both endpoints in d/e files', () => {
-      // No knight can clear both river ranks from dry bank to dry bank.
+    it('allows knights whenever both endpoints are dry, including bridge squares', () => {
       expect(selected(context('bridge-over-troubled-water', { d4: 'wn' }))).toContain('d4e6');
       expect(selected(context('bridge-over-troubled-water', { c4: 'wn' }))).not.toContain('c4d6');
-      expect(selected(context('bridge-over-troubled-water', { d4: 'wn' }))).not.toContain('d4c6');
+      expect(selected(context('bridge-over-troubled-water', { d4: 'wn' }))).toContain('d4c6');
       expect(selected(context('bridge-over-troubled-water', { d3: 'wn' }))).toContain('d3e5');
+      expect(selected(context('bridge-over-troubled-water', { e4: 'wn', f6: 'bn' }))).toContain('e4f6');
+      expect(selected(context('bridge-over-troubled-water', { f3: 'wn', d4: 'bn' }))).toContain('f3d4');
+    });
+
+    it.each(['w', 'b'] as const)('checks every knight jump by dry endpoints for %s', color => {
+      const water = (at: number) => [3, 4].includes(Math.floor(at / 8)) && ![3, 4].includes(at % 8);
+      for (let from = 0; from < 64; from++) {
+        const ctx = context('bridge-over-troubled-water', { [square(from)]: `${color}n` }, color);
+        const allowed = selected(ctx);
+        for (const move of ctx.moves) {
+          expect(allowed.includes(uci(move)), uci(move)).toBe(!water(from) && !water(move.to));
+        }
+      }
     });
   });
 

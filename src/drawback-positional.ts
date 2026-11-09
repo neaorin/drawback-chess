@@ -67,10 +67,11 @@ export function positionalMoves(ctx: RuleContext): Move[] {
       return every((_from, _to, type) => ownKing === undefined || advance(ownKing, color) !== 0 || type === 'p' || type === 'k');
     case 'bridge-over-troubled-water':
       return every((from, to, type) => {
-        if ((row(to) === 3 || row(to) === 4) && file(to) !== 3 && file(to) !== 4) return false;
+        const water = (at: number) => (row(at) === 3 || row(at) === 4) && file(at) !== 3 && file(at) !== 4;
+        if (water(to)) return false;
+        if (type === 'n') return !water(from);
         const low = Math.min(row(from), row(to)), high = Math.max(row(from), row(to));
         if (low > 4 || high < 3) return true;
-        if (type === 'n') return [from, to].every(at => file(at) === 3 || file(at) === 4);
         const dr = Math.sign(row(to) - row(from)), dc = Math.sign(file(to) - file(from));
         if (!dr) return true;
         for (let r = row(from) + dr, f = file(from) + dc; r !== row(to); r += dr, f += dc) {

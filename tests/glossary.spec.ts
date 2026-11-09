@@ -6,6 +6,31 @@ import { unluckySquares } from '../src/drawback-helpers';
 import { legalMoves, square } from '../src/game';
 import { initialRules } from '../src/drawback-state';
 
+test('bridge knights highlight and capture across dry endpoints', async ({ page }) => {
+  const game = newGame('bridge-over-troubled-water', 'horse', 42);
+  game.board.fill(null);
+  for (const [at, piece] of Object.entries({
+    g1: { color: 'w', kind: 'k' }, g8: { color: 'b', kind: 'k' },
+    e4: { color: 'w', kind: 'n' }, f3: { color: 'w', kind: 'n' },
+    f6: { color: 'b', kind: 'n' }, d4: { color: 'b', kind: 'n' },
+  } as const)) game.board[index(at)] = piece;
+  game.rules = initialRules(game, 42);
+  await page.addInitScript(game => {
+    localStorage.setItem('drawback-chess-v1', JSON.stringify({
+      version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+    }));
+  }, game);
+  await page.goto('/');
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await page.locator('[data-square="e4"]').click();
+  await expect(page.locator('[data-square="f6"]')).toHaveClass(/legal-square/);
+  await page.locator('[data-square="f3"]').click();
+  await expect(page.locator('[data-square="d4"]')).toHaveClass(/legal-square/);
+  await page.locator('[data-square="d4"]').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('[data-square="d4"] img')).toHaveAttribute('src', /wN\.svg$/);
+});
+
 for (const drawback of ['ooh-shiny', 'simplifier', 'escort-mission', 'evil-twin'] as const) {
   test(`${drawback} highlights mandatory victims without selecting a piece`, async ({ page }) => {
     const game = newGame(drawback, 'horse', 42);

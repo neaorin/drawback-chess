@@ -296,6 +296,8 @@ uses these conventions:
   even if the king was already attacked.
 - The river occupies ranks 4 and 5, with crossings restricted to the d/e files;
   pieces cannot land on the river except on d4, e4, d5, e5 (the bridge).
+  Knights only require dry start and end squares, including the bridge;
+  intervening water does not restrict their jumps.
   Water rises from each player's home rank.
   Thunderdome is the central 4-by-4 area.
 - A queen retains its queen identity and artwork under Drag, Queen Disguise,
