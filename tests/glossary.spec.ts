@@ -6,7 +6,7 @@ import { unluckySquares } from '../src/drawback-helpers';
 import { legalMoves, square } from '../src/game';
 import { initialRules } from '../src/drawback-state';
 
-for (const drawback of ['ooh-shiny', 'simplifier'] as const) {
+for (const drawback of ['ooh-shiny', 'simplifier', 'escort-mission', 'evil-twin'] as const) {
   test(`${drawback} highlights mandatory victims without selecting a piece`, async ({ page }) => {
     const game = newGame(drawback, 'horse', 42);
     game.board.fill(null);
@@ -16,6 +16,14 @@ for (const drawback of ['ooh-shiny', 'simplifier'] as const) {
       a4: { color: 'b', kind: 'r' }, f4: { color: 'b', kind: 'p' },
       f8: { color: 'b', kind: 'r' },
     } as const)) game.board[index(at)] = piece;
+    const victims = drawback === 'escort-mission' ? ['g1', 'g2'] : drawback === 'evil-twin' ? ['a4', 'f8'] : ['d6', 'a4'];
+    if (drawback === 'escort-mission') {
+      game.board[index('g1')] = { color: 'b', kind: 'p' };
+      game.board[index('g2')] = { color: 'b', kind: 'p' };
+    }
+    if (drawback === 'evil-twin') {
+      game.board[index('e8')] = { color: 'w', kind: 'r' };
+    }
     game.rights = { w: { king: false, queen: false }, b: { king: false, queen: false } };
     game.rules = initialRules(game, 42);
     await page.addInitScript(game => {
@@ -27,14 +35,14 @@ for (const drawback of ['ooh-shiny', 'simplifier'] as const) {
     await expect(page.locator('.mandatory-capture')).toHaveCount(0);
     await page.getByRole('button', { name: /I’m the .* player/ }).click();
     await expect(page.locator('.mandatory-capture')).toHaveCount(2);
-    for (const at of ['d6', 'a4']) {
+    for (const at of victims) {
       await expect(page.locator(`[data-square="${at}"]`).getByRole('img', { name: 'Mandatory capture target' })).toBeVisible();
     }
     await expect(page.locator('[data-square="f4"] .mandatory-capture')).toHaveCount(0);
     await page.getByRole('button', { name: 'Flip board', exact: true }).click();
-    await expect(page.locator('[data-square="d6"] .mandatory-capture')).toBeVisible();
-    await page.locator('[data-square="d4"]').click();
-    await page.locator('[data-square="d6"]').click();
+    await expect(page.locator(`[data-square="${victims[0]}"] .mandatory-capture`)).toBeVisible();
+    await page.locator(`[data-square="${drawback === 'escort-mission' ? 'h1' : 'd4'}"]`).click();
+    await page.locator(`[data-square="${victims[0]}"]`).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.locator('.mandatory-capture')).toHaveCount(0);
     await page.getByRole('button', { name: /I’m the .* player/ }).click();

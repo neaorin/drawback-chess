@@ -35,6 +35,8 @@ export function preview(g: Game, m: Move): Game {
 
 export function preferredCapture(g: Game, m: Move): boolean {
   if (m.capture === undefined) return false;
+  if (g.drawbacks[g.turn] === 'escort-mission') return g.board[m.from]!.kind === 'k';
+  if (g.drawbacks[g.turn] === 'evil-twin') return g.board[m.from]!.kind === g.board[m.capture]!.kind;
   if (g.drawbacks[g.turn] === 'ooh-shiny') return !attacked(preview(g, m), m.to, g.turn === 'w' ? 'b' : 'w');
   if (g.drawbacks[g.turn] === 'simplifier') return value[g.board[m.from]!.kind] <= value[g.board[m.capture]!.kind];
   return false;

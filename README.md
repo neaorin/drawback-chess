@@ -273,7 +273,7 @@ Permanent terrain and capture rules have no extra banner. Conditional
 Disguise and The Scent of Blood provide hints for the selected piece.
 Messages disappear during slides/handoff and at game over; historical review
 uses the reviewed position's rule state.
-Ooh Shiny and Simplifier mark mandatory capture targets with a red dashed
+Ooh Shiny, Simplifier, Escort Mission, and Evil Twin mark mandatory capture targets with a red dashed
 highlight before selecting a piece. Markers hide when no preferred capture
 exists, during handoff/slides, and on the opponent's turn.
 

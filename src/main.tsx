@@ -165,7 +165,7 @@ function App() {
   const moves = legalMoves(game);
   const mandatoryCaptures = new Set(
     game.result || handoff || sliding || displayedGame.turn !== viewer ||
-      !['ooh-shiny', 'simplifier'].includes(displayedGame.drawbacks[viewer] ?? '') ? [] :
+      !['ooh-shiny', 'simplifier', 'escort-mission', 'evil-twin'].includes(displayedGame.drawbacks[viewer] ?? '') ? [] :
       legalMoves(displayedGame).filter(move => preferredCapture(displayedGame, move)).map(move => move.capture!),
   );
   const threatenedKings = visibleKingAttacks(visibilityGame, viewer);

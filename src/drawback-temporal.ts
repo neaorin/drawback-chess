@@ -88,9 +88,9 @@ export function temporalMoves(ctx: RuleContext): Move[] {
       return own.filter(e => captured(e) && e.captured !== 'k').length >= 8
         ? filter(m => !capture(m) || victim(m) === 'k') : moves;
     case 'escort-mission':
-      return prefer(m => capture(m) && kind(m) === 'k');
+      return prefer(m => preferredCapture(g, m));
     case 'evil-twin':
-      return prefer(m => capture(m) && kind(m) === victim(m));
+      return prefer(m => preferredCapture(g, m));
     case 'expedition':
       return turn === params.move ? filter(m => m.to === params.square) : moves;
     case 'eye-for-an-eye':
