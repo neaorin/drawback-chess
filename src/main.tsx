@@ -7,7 +7,7 @@ import { loadSaved, SAVE_KEY, type Mode, type Saved } from './storage';
 import { DIFFICULTY_LEVELS, difficultyLevel, type DrawbackChoice } from './drawback-catalogue';
 import { randomDrawback } from './game';
 import './styles.css';
-import { unluckySquares } from './drawback-helpers';
+import { preferredCapture, unluckySquares } from './drawback-helpers';
 
 const names: Record<Kind, string> = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
 function Glyph({ piece }: { piece: Piece }) {
@@ -160,9 +160,14 @@ function App() {
   const sunSquares = terrainSquares('blinded-by-the-sun');
   const volcanoSquares = terrainSquares('active-volcano');
   const showRiver = (['w', 'b'] as const).some(color => terrainVisible(color, 'bridge-over-troubled-water'));
-  const moveInfo = game.result || handoff || (mode === 'local' && sliding) ? null : drawbackMoveInfo(displayedGame, viewer);
+  const moveInfo = game.result || handoff || sliding ? null : drawbackMoveInfo(displayedGame, viewer, reviewPosition ? null : selected);
   const active = !reviewPosition && !game.result && !needsEngineBan(game) && !busy && !sliding && !handoff && (mode === 'local' || game.turn === human) && !modal;
   const moves = legalMoves(game);
+  const mandatoryCaptures = new Set(
+    game.result || handoff || sliding || displayedGame.turn !== viewer ||
+      !['ooh-shiny', 'simplifier'].includes(displayedGame.drawbacks[viewer] ?? '') ? [] :
+      legalMoves(displayedGame).filter(move => preferredCapture(displayedGame, move)).map(move => move.capture!),
+  );
   const threatenedKings = visibleKingAttacks(visibilityGame, viewer);
   const targets = selected === null || reviewPosition ? [] : moves.filter(m => m.from === selected);
   const ownDrawback = DRAWBACKS.find(d => d.id === game.drawbacks[viewer])!;
@@ -389,6 +394,7 @@ function App() {
                   {position % 8 === 0 && <span className="rank-label">{square(i)[1]}</span>}
                   {!seen && <span aria-hidden="true" className="fog-effect" />}
                   {unluckyForbidden.has(i) && <span className="unlucky-forbidden" role="img" aria-label="Forbidden destination this turn" />}
+                  {seen && mandatoryCaptures.has(i) && <span className="mandatory-capture" role="img" aria-label="Mandatory capture target" />}
                   {river && <span className="river-overlay" aria-hidden="true" />}
                   {volcanoAdjacent && <span className="volcano-danger" aria-hidden="true" />}
                   {sun && <svg className="sun-sprite" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="13" /><path d="M32 3v9m0 40v9M3 32h9m40 0h9M11.5 11.5l6.4 6.4m28.2 28.2 6.4 6.4m0-41-6.4 6.4M17.9 46.1l-6.4 6.4" /></svg>}

@@ -33,6 +33,13 @@ export function preview(g: Game, m: Move): Game {
   return { ...g, board, kingPass: null, ep: null };
 }
 
+export function preferredCapture(g: Game, m: Move): boolean {
+  if (m.capture === undefined) return false;
+  if (g.drawbacks[g.turn] === 'ooh-shiny') return !attacked(preview(g, m), m.to, g.turn === 'w' ? 'b' : 'w');
+  if (g.drawbacks[g.turn] === 'simplifier') return value[g.board[m.from]!.kind] <= value[g.board[m.capture]!.kind];
+  return false;
+}
+
 export function unluckySquares(seed: number, color: Color, turn: number): Set<number> {
   return new Set(Array.from({ length: 64 }, (_, at) => at)
     .sort((a, b) => randomNumber(seed, color, turn, 100 + a) - randomNumber(seed, color, turn, 100 + b) || a - b)

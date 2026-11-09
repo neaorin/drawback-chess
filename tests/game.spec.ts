@@ -194,29 +194,29 @@ test('a failed Stockfish download visibly switches to the legal variant fallback
 test('before-move info updates after king moves and stays hidden during handoff', async ({ page }) => {
   await loadPosition(page, newGame('command', 'even'));
   const info = page.getByRole('status', { name: 'Your move restriction' });
-  await expect(info).toContainText('Cannot capture.');
+  await expect(info).toHaveCount(0);
   await page.locator('[data-square="e2"]').click();
   await page.locator('[data-square="e3"]').click();
   await expect(info).toHaveCount(0);
   await page.getByRole('button', { name: 'I’m the black player' }).click();
-  await expect(info).toHaveText(/Cannot capture this move. Can capture next move./);
+  await expect(info).toHaveCount(0);
   await page.locator('[data-square="a7"]').click();
   await page.locator('[data-square="a6"]').click();
   await page.getByRole('button', { name: 'I’m the white player' }).click();
   await page.locator('[data-square="e1"]').click();
   await page.locator('[data-square="e2"]').click();
   await page.getByRole('button', { name: 'I’m the black player' }).click();
-  await expect(info).toContainText('Can capture this move. Cannot capture next move.');
+  await expect(info).toHaveCount(0);
   await page.locator('[data-square="a6"]').click();
   await page.locator('[data-square="a5"]').click();
   await page.getByRole('button', { name: 'I’m the white player' }).click();
-  await expect(info).toContainText('Can capture for the next 3 moves (including this move).');
+  await expect(info).toContainText('Can capture for the next 3 moves.');
 });
 
 test('Alternator prompts update before each turn', async ({ page }) => {
   await loadPosition(page, newGame('alternator', 'horse'));
   const info = page.getByRole('status', { name: 'Your move restriction' });
-  await expect(info).toContainText('May move a pawn or a non-pawn.');
+  await expect(info).toHaveCount(0);
   await page.locator('[data-square="e2"]').click();
   await page.locator('[data-square="e4"]').click();
   await page.getByRole('button', { name: 'I’m the black player' }).click();

@@ -266,6 +266,17 @@ Unlucky forbids exactly 32 destination squares each turn.
 Those squares have a light red overlay on the affected player's turn, with no
 additional turn message. The overlays are hidden during local handoff.
 
+Situational messages show concise current move restrictions, active windows,
+and approaching deadlines rather than repeating the drawback definition.
+Permanent terrain and capture rules have no extra banner. Conditional
+“if able” obligations appear only when a qualifying move exists. Queen
+Disguise and The Scent of Blood provide hints for the selected piece.
+Messages disappear during slides/handoff and at game over; historical review
+uses the reviewed position's rule state.
+Ooh Shiny and Simplifier mark mandatory capture targets with a red dashed
+highlight before selecting a piece. Markers hide when no preferred capture
+exists, during handoff/slides, and on the opponent's turn.
+
 Where the short glossary wording leaves details unspecified, this implementation
 uses these conventions:
 

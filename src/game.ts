@@ -1,9 +1,10 @@
 import { DRAWBACKS, DIFFICULTY_LEVELS, difficultyLevel, type DrawbackChoice, type DrawbackId } from './drawback-catalogue';
-import { movementKind, initialRules, needsEngineBan, parameterDescription, randomMoveInfo, ruleContext, rulesFor, updateRules } from './drawback-state';
+import { movementKind, initialRules, needsEngineBan, parameterDescription, ruleContext, rulesFor, updateRules } from './drawback-state';
 import { positionalMoves } from './drawback-positional';
 import { temporalMoves } from './drawback-temporal';
 import { drawbackLoss } from './drawback-losses';
 import type { RuleState } from './drawback-types';
+import { situationalMessage } from './drawback-messages';
 
 export { DRAWBACKS, type DrawbackId };
 export type Color = 'w' | 'b';
@@ -198,66 +199,13 @@ export function visibleKingAttacks(g: Game, color: Color): Set<number> {
   return attacked;
 }
 
-function commandCaptureMoves(g: Game, color: Color): number {
+export function commandCaptureMoves(g: Game, color: Color): number {
   const last = g.lastKingTurn[color];
   return last === null ? 0 : Math.max(0, 3 - (g.turns[color] - last));
 }
 
-export function drawbackMoveInfo(g: Game, color = g.turn): string | null {
-  if (g.result || color !== g.turn) return null;
-  switch (g.drawbacks[color]) {
-    case 'command': {
-      const remaining = commandCaptureMoves(g, color);
-      return remaining > 0
-        ? `Can capture for the next ${remaining} ${remaining === 1 ? 'move' : 'moves'} (including this move).`
-        : 'Cannot capture. Move your king to enable captures on your next three moves.';
-    }
-    case 'even':
-      return (g.turns[color] + 1) % 2 === 0
-        ? 'Can capture this move. Cannot capture next move.'
-        : 'Cannot capture this move. Can capture next move.';
-    case 'oddball':
-      return (g.turns[color] + 1) % 2 === 0 ? 'Cannot capture' : null;
-    case 'alternator':
-      return g.lastPawn[color] === null ? 'May move a pawn or a non-pawn.' :
-        g.lastPawn[color] ? 'Must move a non-pawn.' : 'Must move a pawn.';
-    case 'fog':
-      return 'Fog hides unseen squares. ? marks an unknown enemy blocking a pawn. Opponent moves stay hidden until game over.';
-    case 'bipartisanship':
-      return randomMoveInfo(g);
-    case 'always-check-it-might-be-mate':
-    case 'unlucky':
-      return null;
-    case 'glorious-battle': {
-      const start = rulesFor(g).params[color].move;
-      const turn = g.turns[color] + 1;
-      return turn >= start && turn < start + 4
-        ? `Battle! Must capture for the next ${start + 4 - turn} moves` : null;
-    }
-    case 'windup-toys': {
-      const remaining = 12 - g.turns[color];
-      return remaining > 0
-        ? `Only ${remaining} ${remaining === 1 ? 'move' : 'moves'} until the toys wind down`
-        : 'Toys wound down';
-    }
-    case 'expedition': {
-      const params = rulesFor(g).params[color];
-      return g.turns[color] + 1 === params.move ? `Must move to ${square(params.square)}.` : null;
-    }
-    case 'boxing-with-shadows': {
-      const lastEnemy = rulesFor(g).events.filter(event => event.color !== color).at(-1);
-      return lastEnemy && legalMoves(g).some(move => move.to === lastEnemy.from)
-        ? `Must move to ${square(lastEnemy.from)}.` : null;
-    }
-    case 'barbarian-rage': {
-      const last = rulesFor(g).events.filter(event => event.color === color).at(-1);
-      return last?.capture !== undefined && legalMoves(g).some(move => move.capture !== undefined)
-        ? 'Must capture.' : null;
-    }
-    default:
-      if (['horse', 'castle', 'cess'].includes(g.drawbacks[color] ?? '')) return null;
-      return randomMoveInfo(g) ?? drawbackDescription(g, color);
-  }
+export function drawbackMoveInfo(g: Game, color = g.turn, selected: number | null = null): string | null {
+  return situationalMessage(g, color, selected);
 }
 
 export function drawbackDescription(g: Game, color: Color): string {

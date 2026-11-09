@@ -4,6 +4,75 @@ import { DIFFICULTY_LEVELS, difficultyLevel } from '../src/drawback-catalogue';
 import { templateDescription } from '../src/drawback-state';
 import { unluckySquares } from '../src/drawback-helpers';
 import { legalMoves, square } from '../src/game';
+import { initialRules } from '../src/drawback-state';
+
+for (const drawback of ['ooh-shiny', 'simplifier'] as const) {
+  test(`${drawback} highlights mandatory victims without selecting a piece`, async ({ page }) => {
+    const game = newGame(drawback, 'horse', 42);
+    game.board.fill(null);
+    for (const [at, piece] of Object.entries({
+      h1: { color: 'w', kind: 'k' }, h8: { color: 'b', kind: 'k' },
+      d4: { color: 'w', kind: 'r' }, d6: { color: 'b', kind: 'q' },
+      a4: { color: 'b', kind: 'r' }, f4: { color: 'b', kind: 'p' },
+      f8: { color: 'b', kind: 'r' },
+    } as const)) game.board[index(at)] = piece;
+    game.rights = { w: { king: false, queen: false }, b: { king: false, queen: false } };
+    game.rules = initialRules(game, 42);
+    await page.addInitScript(game => {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+    }, game);
+    await page.goto('/');
+    await expect(page.locator('.mandatory-capture')).toHaveCount(0);
+    await page.getByRole('button', { name: /I’m the .* player/ }).click();
+    await expect(page.locator('.mandatory-capture')).toHaveCount(2);
+    for (const at of ['d6', 'a4']) {
+      await expect(page.locator(`[data-square="${at}"]`).getByRole('img', { name: 'Mandatory capture target' })).toBeVisible();
+    }
+    await expect(page.locator('[data-square="f4"] .mandatory-capture')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Flip board', exact: true }).click();
+    await expect(page.locator('[data-square="d6"] .mandatory-capture')).toBeVisible();
+    await page.locator('[data-square="d4"]').click();
+    await page.locator('[data-square="d6"]').click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.locator('.mandatory-capture')).toHaveCount(0);
+    await page.getByRole('button', { name: /I’m the .* player/ }).click();
+    await expect(page.locator('.mandatory-capture')).toHaveCount(0);
+  });
+}
+
+test('situational hints are concise, conditional and selection-specific', async ({ page }) => {
+  const game = newGame('queen-disguise', 'horse', 42);
+  game.rules!.pieces[index('d1')].queenMode = 'r';
+  await page.addInitScript(game => {
+    if (!localStorage.getItem('message-seeded')) {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+      localStorage.setItem('message-seeded', 'true');
+    }
+  }, game);
+  await page.goto('/');
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  const info = page.getByRole('status', { name: 'Your move restriction' });
+  await expect(info).toHaveCount(0);
+  await page.locator('[data-square="d1"]').click();
+  await expect(info).toHaveText('Queen moves like a rook.');
+  await page.locator('[data-square="e2"]').click();
+  await expect(info).toHaveCount(0);
+  await page.getByRole('button', { name: /New game/ }).click();
+  await page.locator('#drawback-choice').selectOption('bongcloud');
+  await page.getByRole('button', { name: /Let’s play/ }).click();
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(info).toHaveText('Must move a pawn or king.');
+  await page.getByRole('button', { name: /New game/ }).click();
+  await page.locator('#drawback-choice').selectOption('atomic-bomb');
+  await page.getByRole('button', { name: /Let’s play/ }).click();
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(info).toHaveCount(0);
+  await expect(page.locator('.drawback-content')).toContainText('Atomic Bomb');
+});
 
 test('Unlucky marks exactly its forbidden destinations without a turn message', async ({ page }) => {
   const game = newGame('unlucky', 'horse', 42);
@@ -257,7 +326,7 @@ test('Ichthyophobe prepares a real engine restriction for a human and keeps it a
     }
   }, game);
   await page.goto('/');
-  await expect(page.locator('.move-info')).toContainText('Engine-selected forbidden move', { timeout: 20000 });
+  await expect(page.locator('.move-info')).toContainText('Cannot play', { timeout: 20000 });
   const forbidden = await page.evaluate((): string =>
     JSON.parse(localStorage.getItem('drawback-chess-v1')!).game.rules.engineBans[0]);
   expect(forbidden).toMatch(/^[a-h][1-8][a-h][1-8][qrbn]?$/);
@@ -265,7 +334,7 @@ test('Ichthyophobe prepares a real engine restriction for a human and keeps it a
   await page.locator(`[data-square="${forbidden.slice(0, 2)}"]`).click();
   await expect(page.locator(`[data-square="${forbidden.slice(2, 4)}"]`)).not.toHaveClass(/legal-square/);
   await page.reload();
-  await expect(page.locator('.move-info')).toContainText(forbidden);
+  await expect(page.locator('.move-info')).toContainText(`${forbidden.slice(0, 2)}–${forbidden.slice(2, 4)}${forbidden.slice(4)}`);
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
 

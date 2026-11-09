@@ -1,5 +1,5 @@
 import { other, type Kind, type Move } from './game';
-import { adjacent, advance, attacked, distance, file, king, randomNumber, rightward, row, shade, squares, unluckySquares, value } from './drawback-helpers';
+import { adjacent, advance, attacked, distance, file, king, preferredCapture, randomNumber, rightward, row, shade, squares, unluckySquares, value } from './drawback-helpers';
 import type { RuleContext, RuleEvent } from './drawback-types';
 
 export const TEMPORAL_IDS = [
@@ -146,7 +146,7 @@ export function temporalMoves(ctx: RuleContext): Move[] {
     case 'oddball':
       return turn % 2 === 1 ? moves : filter(m => !capture(m));
     case 'ooh-shiny':
-      return prefer(m => capture(m) && !attacked(ctx.after(m), m.to, opponent));
+      return prefer(m => preferredCapture(g, m));
     case 'out-of-breath':
       return own.some(e => e.kind === 'k') ? filter(m => kind(m) !== 'k') : moves;
     case 'pacman':
@@ -190,7 +190,7 @@ export function temporalMoves(ctx: RuleContext): Move[] {
     case 'simon-says':
       return lastEnemy ? filter(m => shade(m.to) === shade(lastEnemy.to)) : moves;
     case 'simplifier':
-      return prefer(m => capture(m) && value[kind(m)] <= value[victim(m)!]);
+      return prefer(m => preferredCapture(g, m));
     case 'skittish':
       return inCheck() ? filter(m => kind(m) === 'k') : moves;
     case 'spice-of-life':

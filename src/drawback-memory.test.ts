@@ -20,18 +20,18 @@ const reply = (g: Game) => step(g, g.board[index('h8')] ? 'h8' : 'g8', g.board[i
 
 describe('piece identity and rule lifecycle', () => {
   it.each(['w', 'b'] as const)('shows the Windup Toys countdown and wound-down status for %s', color => {
-    const g = setup('windup-toys', {});
+    const g = setup('windup-toys', { a1: `${color}n` });
     g.turn = color;
     g.drawbacks[color] = 'windup-toys';
     for (let completed = 0; completed < 12; completed++) {
       g.turns[color] = completed;
       const remaining = 12 - completed;
-      expect(drawbackMoveInfo(g)).toBe(`Only ${remaining} ${remaining === 1 ? 'move' : 'moves'} until the toys wind down`);
+      expect(drawbackMoveInfo(g)).toBe(remaining <= 3 ? `Only ${remaining} ${remaining === 1 ? 'move' : 'moves'} until the toys wind down` : null);
       expect(drawbackMoveInfo(g, color === 'w' ? 'b' : 'w')).toBeNull();
     }
     for (const completed of [12, 13, 20]) {
       g.turns[color] = completed;
-      expect(drawbackMoveInfo(g)).toBe('Toys wound down');
+      expect(drawbackMoveInfo(g)).toBe('Cannot move knights or bishops.');
     }
     g.result = { winner: color === 'w' ? 'b' : 'w', reason: 'No legal moves' };
     expect(drawbackMoveInfo(g)).toBeNull();

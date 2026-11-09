@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { newGame } from '../src/game';
+import { index, newGame } from '../src/game';
+
+function commandWithCapture() {
+  const game = newGame('command', 'horse');
+  game.board[index('c3')] = { color: 'b', kind: 'p' };
+  return game;
+}
 
 test('theme toggle persists without changing the board or game', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
@@ -149,7 +155,7 @@ for (const [width, height] of [[320, 568], [390, 660], [390, 844]]) {
       localStorage.setItem('drawback-chess-v1', JSON.stringify({
         version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
       }));
-    }, newGame('command', 'horse'));
+    }, commandWithCapture());
     await page.goto('/');
     await page.getByRole('button', { name: 'I’m the white player' }).click();
     const card = page.locator('.drawback-card');
@@ -204,7 +210,7 @@ test('mobile reserves message space while reviewing a turn with no restriction',
     localStorage.setItem('drawback-chess-v1', JSON.stringify({
       version: 1, game, mode: 'ai', human: 'w', flipped: false, strength: 200,
     }));
-  }, newGame('command', 'horse'));
+  }, commandWithCapture());
   await page.goto('/');
   const info = page.getByRole('status', { name: 'Your move restriction' });
   await expect(info).toContainText('Cannot capture.');

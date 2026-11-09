@@ -54,22 +54,22 @@ describe('before-move drawback information', () => {
       g.turns[color] = completed;
       expect(has(g, 'a1', 'a8')).toBe(remaining > 0);
       expect(drawbackMoveInfo(g)).toContain(remaining > 0
-        ? `Can capture for the next ${remaining} ${remaining === 1 ? 'move' : 'moves'} (including this move).`
+        ? `Can capture for the next ${remaining} ${remaining === 1 ? 'move' : 'moves'}.`
         : 'Cannot capture.');
     }
   });
   it.each(['w', 'b'] as const)('Even Keeled status uses personal turn parity for %s', color => {
-    const g = position({ e1: 'wk', h8: 'bk' }, 'even', color);
+    const g = position({ e1: 'wk', h8: 'bk', a1: `${color}r`, a8: `${color === 'w' ? 'b' : 'w'}r` }, 'even', color);
     for (let completed = 0; completed < 4; completed++) {
       g.turns[color] = completed;
       expect(drawbackMoveInfo(g)).toBe(completed % 2 === 0
-        ? 'Cannot capture this move. Can capture next move.'
-        : 'Can capture this move. Cannot capture next move.');
+        ? 'Cannot capture.'
+        : 'Can capture.');
     }
   });
   it.each(['w', 'b'] as const)('Alternator status reflects the previous personal move for %s', color => {
     const g = position({ e1: 'wk', h8: 'bk' }, 'alternator', color);
-    expect(drawbackMoveInfo(g)).toBe('May move a pawn or a non-pawn.');
+    expect(drawbackMoveInfo(g)).toBeNull();
     g.lastPawn[color] = true;
     expect(drawbackMoveInfo(g)).toBe('Must move a non-pawn.');
     g.lastPawn[color] = false;
@@ -79,7 +79,7 @@ describe('before-move drawback information', () => {
     const g = position({ e1: 'wk', h8: 'bk', a1: `${color}r`, a8: `${color === 'w' ? 'b' : 'w'}r` }, 'oddball', color);
     for (let completed = 0; completed < 4; completed++) {
       g.turns[color] = completed;
-      expect(drawbackMoveInfo(g)).toBe(completed % 2 === 1 ? 'Cannot capture' : null);
+      expect(drawbackMoveInfo(g)).toBe(completed % 2 === 1 ? 'Cannot capture.' : null);
       expect(has(g, 'a1', 'a8')).toBe(completed % 2 === 0);
       expect(drawbackMoveInfo(g, color === 'w' ? 'b' : 'w')).toBeNull();
     }
