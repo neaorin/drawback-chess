@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DRAWBACKS, drawbackMoveInfo, index, newGame, type Color, type DrawbackId, type Game, type Kind } from './game';
 import { initialRules } from './drawback-state';
@@ -20,19 +19,38 @@ function event(color: Color, overrides: Partial<RuleEvent> = {}): RuleEvent {
   return { color, kind: 'p', pieceId: 10, from: index('a2'), to: index('a3'), ...overrides };
 }
 
-const recommendations = readFileSync(new URL('../SITUATIONAL-MESSAGE-RECOMMENDATIONS.md', import.meta.url), 'utf8');
-const suppressed = [...recommendations.matchAll(/^\| ([^|]+) \| No message\. \|/gm)].map(match => match[1].trim());
+const suppressed = [
+  'abstinence', 'active-volcano', 'always-check-it-might-be-mate', 'atomic-bomb',
+  'bishop-fan-club', 'blinded-by-the-sun', 'boastful', 'body-snatcher',
+  'bridge-over-troubled-water', 'castle', 'cess', 'champing-at-the-bit',
+  'cheerleaders', 'chivalry', 'closed-book', 'conscientious-objectors',
+  'control-center', 'covering-fire', 'crenellations', 'crossing-the-rubicon',
+  'drag', 'edgelord', 'eisoptrophobia', 'elephants-fear-mice', 'entrenched',
+  'exclusivity-clause', 'false-prophets', 'far-sighted', 'femme-fatale', 'fog',
+  'forward-march', 'friendly-fire', 'gloomstalker', 'haunted', 'hold-them-back',
+  'homeland-security', 'horse', 'indecisive', 'inside-the-lines', 'ivory-tower',
+  'just-passing-through', 'lame-duck', 'leaps-and-bounds', 'left-for-dead',
+  'lethal-attraction', 'messy-divorce', 'modest', 'my-kingdom-for-a-horse',
+  'no-shuffling', 'noblesse-oblige', 'octomom', 'outflanked', 'pack-mentality',
+  'paranoid', 'pawn-battle', 'peons-first', 'professional-courtesy',
+  'protected-pawns', 'punching-down', 'quicksand', 'reflective', 'respectful',
+  'rook-fan-club', 'royal-berth', 'scorched-earth', 'secret-garden',
+  'separation-anxiety', 'separation-of-church-and-state', 'shadow-queen',
+  'sibling-rivalry', 'simp', 'snipers', 'social-distancing', 'spread-out',
+  'stage-fright', 'stand-your-ground', 'stay-at-home-mom', 'stop-stalling',
+  'superstitious', 'three-check', 'thunderdome', 'torchlight', 'tower-defense',
+  'trophy-wife', 'true-gentleman', 'true-love', 'unlucky', 'unrequited-love',
+  'vegan', 'whites-of-their-eyes',
+] as const satisfies readonly DrawbackId[];
 
 describe('situational messages', () => {
-  it('matches all recommended no-message rules even when pieces and captures exist', () => {
+  it('suppresses static and loss-condition messages even when pieces and captures exist', () => {
     expect(suppressed.length).toBeGreaterThan(80);
-    for (const name of suppressed) {
-      const d = DRAWBACKS.find(d => d.name === name)!;
-      expect(d, name).toBeDefined();
-      const g = position(d.id, 'w', { a1: 'wr', a8: 'br', d4: 'wq', e5: 'bn' });
+    for (const id of suppressed) {
+      const g = position(id, 'w', { a1: 'wr', a8: 'br', d4: 'wq', e5: 'bn' });
       for (const turns of [0, 5, 10, 20]) {
         g.turns.w = turns;
-        expect(drawbackMoveInfo(g, 'w', index('d4')), name).toBeNull();
+        expect(drawbackMoveInfo(g, 'w', index('d4')), id).toBeNull();
       }
     }
   });
