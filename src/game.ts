@@ -29,7 +29,8 @@ export interface Game {
   lastKingTurn: Record<Color, number | null>;
   lastPawn: Record<Color, boolean | null>;
   history: { color: Color; move: Move; label: string }[];
-  result: { winner: Color; reason: string } | null;
+  result: { winner: Color | null; reason: string } | null;
+  repetitions?: Record<string, number>;
   rules?: RuleState;
 }
 export const other = (c: Color): Color => c === 'w' ? 'b' : 'w';
@@ -63,6 +64,7 @@ export function newGame(white = randomDrawback(), black = randomDrawback(), seed
     history: [], result: null,
   };
   game.rules = initialRules(game, seed ?? crypto.getRandomValues(new Uint32Array(1))[0]);
+  game.repetitions = { [positionKey(game)]: 1 };
   if (!needsEngineBan(game) && legalMoves(game).length === 0) {
     game.result = { winner: 'b', reason: 'White has no legal moves' };
   }
@@ -298,7 +300,51 @@ export function transition(g: Game, m: Move, finish = true): Game {
   if (finish && !next.result && !needsEngineBan(next) && legalMoves(next).length === 0) {
     next.result = { winner: color, reason: `${colorName(opponent)} has no legal moves` };
   }
-  return next;
+  const key = positionKey(next);
+  const previousKey = positionKey(g);
+  const counts = g.repetitions ?? {};
+  next.repetitions = { ...counts, [previousKey]: counts[previousKey] ?? 1, [key]: (counts[key] ?? 0) + 1 };
+  return finishRepetition(next);
+}
+
+// This house rule compares board state, not hidden drawback memory or move counters.
+export function positionKey(g: Game): string {
+  const [board, turn, rights] = fen(g).split(' ');
+  const ep = g.ep !== null && pseudoMoves(g).some(m =>
+    m.to === g.ep && m.capture !== undefined && m.capture !== m.to &&
+    g.board[m.from]?.kind === 'p' && g.board[m.capture]?.kind === 'p') ? square(g.ep) : '-';
+  const pass = g.kingPass;
+  const kingPass = pass ? `${pass.color}:${square(pass.king)}:${[...pass.squares].sort((a, b) => a - b).map(square).join(',')}` : '-';
+  return `${board} ${turn} ${rights} ${ep} | kp:${kingPass}`;
+}
+
+export function repetitionCount(g: Game): number {
+  return g.repetitions?.[positionKey(g)] ?? 1;
+}
+
+export function finishRepetition(g: Game): Game {
+  if (!g.result && !needsEngineBan(g) && repetitionCount(g) >= 3) {
+    if (legalMoves(g).length === 0) {
+      return { ...g, result: { winner: other(g.turn), reason: `${colorName(g.turn)} has no legal moves` } };
+    }
+    return { ...g, result: { winner: null, reason: 'Threefold repetition' } };
+  }
+  return g;
+}
+
+export function restoreRepetitions(g: Game): Game {
+  if (g.repetitions) return finishRepetition(g);
+  const white = g.drawbacks.w, black = g.drawbacks.b;
+  if (!white || !black) throw new Error('Cannot reconstruct repetition without the original drawbacks.');
+  let position = newGame(white, black, rulesFor(g).seed);
+  position.rules = { ...position.rules!, engineBans: { ...rulesFor(g).engineBans } };
+  for (const entry of g.history) {
+    position = transition({ ...position, result: null }, entry.move, false);
+    position.history = [...position.history, entry];
+  }
+  // Empty-history saves can contain custom positions rather than the starting board.
+  const repetitions = g.history.length ? position.repetitions : { [positionKey(g)]: 1 };
+  return finishRepetition({ ...g, repetitions });
 }
 export function play(g: Game, requested: Pick<Move, 'from' | 'to' | 'promotion'>): Game {
   const move = legalMoves(g).find(m => m.from === requested.from && m.to === requested.to && m.promotion === requested.promotion);
@@ -318,7 +364,10 @@ export function positionAt(g: Game, ply: number): Game {
   if (!white || !black) throw new Error('Cannot reconstruct a game without its original drawbacks.');
   let position = newGame(white, black, rulesFor(g).seed);
   position.rules = { ...position.rules!, engineBans: { ...rulesFor(g).engineBans } };
-  for (const entry of g.history.slice(0, ply)) position = play(position, entry.move);
+  for (const entry of g.history.slice(0, ply)) {
+    // Older games could continue beyond three occurrences before draws were supported.
+    position = play(position.result?.winner === null ? { ...position, result: null } : position, entry.move);
+  }
   return position;
 }
 

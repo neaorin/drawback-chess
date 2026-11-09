@@ -1,4 +1,4 @@
-import { DRAWBACKS, type Color, type Game } from './game';
+import { DRAWBACKS, restoreRepetitions, type Color, type Game } from './game';
 
 export type Mode = 'ai' | 'local';
 export type Saved = { version: 1; game: Game; mode: Mode; human: Color; flipped: boolean; strength: number };
@@ -47,8 +47,10 @@ export function isSaved(value: unknown): value is Saved {
       !pair(g.lastKingTurn, v => v === null || count(v)) || !(g.ep === null || cell(g.ep)) ||
       !(g.kingPass === null || (record(g.kingPass) && color(g.kingPass.color) && cell(g.kingPass.king) &&
         Array.isArray(g.kingPass.squares) && g.kingPass.squares.length === 2 && g.kingPass.squares.every(cell))) ||
-      !(g.result === null || (record(g.result) && color(g.result.winner) && typeof g.result.reason === 'string')) ||
+      !(g.result === null || (record(g.result) && (g.result.winner === null || color(g.result.winner)) && typeof g.result.reason === 'string')) ||
       !Array.isArray(g.history) || !g.history.every(h => record(h) && color(h.color) && typeof h.label === 'string' && validMove(h.move))) return false;
+  if (g.repetitions !== undefined && (!record(g.repetitions) || Array.isArray(g.repetitions) ||
+      !Object.entries(g.repetitions).every(([key, value]) => key.length > 0 && count(value) && Number(value) > 0))) return false;
   if (g.rules !== undefined) return validRules(g.rules);
   return record(g.drawbacks) && [g.drawbacks.w, g.drawbacks.b].every(id =>
     ['castle', 'command', 'even', 'alternator', 'horse', 'cess', 'fog'].includes(String(id)));
@@ -59,7 +61,7 @@ export function loadSaved(): { saved: Saved | null; error: string | null } {
     if (!raw) return { saved: null, error: null };
     const saved: unknown = JSON.parse(raw);
     if (!isSaved(saved)) throw new Error('Saved game has an unsupported format.');
-    return { saved, error: null };
+    return { saved: { ...saved, game: restoreRepetitions(saved.game) }, error: null };
   } catch (error) {
     console.error('Could not restore game:', error);
     return { saved: null, error: 'Your saved game could not be restored. A fresh game has been started.' };

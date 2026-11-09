@@ -1,10 +1,41 @@
 import { describe, expect, it, vi } from 'vitest';
-import { newGame } from './game';
+import { index, newGame, play, repetitionCount } from './game';
 import { isSaved, loadSaved, type Saved } from './storage';
 
 const saved = (): Saved => ({ version: 1, game: newGame('horse', 'cess'), mode: 'ai', human: 'w', flipped: false, strength: 400 });
 describe('saved game validation', () => {
   it('accepts a round-tripped game', () => expect(isSaved(JSON.parse(JSON.stringify(saved())))).toBe(true));
+  it('accepts draws but rejects invalid winners and repetition counts', () => {
+    const value = saved();
+    value.game.result = { winner: null, reason: 'Threefold repetition' };
+    expect(isSaved(JSON.parse(JSON.stringify(value)))).toBe(true);
+    Reflect.set(value.game.result, 'winner', 'draw');
+    expect(isSaved(value)).toBe(false);
+    value.game.result = null;
+    for (const repetitions of [null, { key: 0 }, { key: -1 }, { key: 1.5 }, { key: '2' }]) {
+      Reflect.set(value.game, 'repetitions', repetitions);
+      expect(isSaved(value)).toBe(false);
+    }
+  });
+  it('restores occurrence counts from a legacy save and preserves them on reload', () => {
+    const value = saved();
+    for (const [from, to] of [['g1', 'f3'], ['g8', 'f6'], ['f3', 'g1'], ['f6', 'g8']]) {
+      value.game = play(value.game, { from: index(from), to: index(to) });
+    }
+    const expected = value.game.repetitions;
+    delete value.game.repetitions;
+    vi.stubGlobal('localStorage', { getItem: () => JSON.stringify(value) });
+    try {
+      const restored = loadSaved();
+      expect(restored.error).toBeNull();
+      expect(restored.saved!.game.repetitions).toEqual(expected);
+      expect(repetitionCount(restored.saved!.game)).toBe(2);
+      value.game = restored.saved!.game;
+      expect(loadSaved().saved!.game.repetitions).toEqual(expected);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
   it.each(['board', 'history', 'rights', 'turns', 'lastKingTurn', 'lastPawn', 'kingPass', 'ep', 'result', 'revealed', 'drawbacks'])('rejects a missing %s without crashing the app', key => {
     const value = saved();
     Reflect.deleteProperty(value.game, key);

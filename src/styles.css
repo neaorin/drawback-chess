@@ -181,6 +181,7 @@ main { margin: 0 auto; }
 h2 { font-size: 24px; font-weight: 620; letter-spacing: -.7px; line-height: 1.25; margin: 14px 0 8px; }
 .turn-card p { color: var(--cp-text-soft); font-size: 12px; line-height: 1.6; max-width: 290px; margin: 0; }
 .turn-card .primary-button { margin-top: 14px; }
+.repetition-notice { padding: 8px 10px; border-left: 3px solid var(--cp-accent); border-radius: 6px; background: var(--cp-accent-soft); color: var(--cp-text); font-size: 12px; font-weight: 600; line-height: 1.5; }
 .move-info { width: 100%; margin: 0 0 8px; padding: 8px 10px; border-left: 3px solid var(--cp-accent); border-radius: 6px; background: var(--cp-accent-soft); }
 .drawback-content .move-info p { margin: 0; font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--cp-text); }
 .move-info-slot { width: 100%; }

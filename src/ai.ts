@@ -1,5 +1,5 @@
 import { Chess, validateFen, type Square } from 'chess.js';
-import { fen, fogVisibility, legalMoves, other, square, transition, uci, type Game, type Move, type Color } from './game';
+import { fen, finishRepetition, fogVisibility, legalMoves, other, square, transition, uci, type Game, type Move, type Color } from './game';
 import { needsEngineBan, rulesFor } from './drawback-state';
 
 export interface EnginePort {
@@ -87,7 +87,7 @@ export function stockfishRoots(g: Game): Move[] {
 
 const values = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
 function evaluate(g: Game, perspective: Color): number {
-  if (g.result) return g.result.winner === perspective ? 100000 : -100000;
+  if (g.result) return g.result.winner === null ? 0 : g.result.winner === perspective ? 100000 : -100000;
   return g.board.reduce((sum, p, i) => {
     if (!p) return sum;
     const advance = p.color === 'w' ? 7 - Math.floor(i / 8) : Math.floor(i / 8);
@@ -185,7 +185,7 @@ export async function resolveEngineBan(g: Game, client: StockfishClient, millise
   };
   if (legalMoves(next).length === 0) next.result = { winner: other(g.turn), reason: 'Ichthyophobe: no legal moves remain' };
   return {
-    game: next, source: `Ichthyophobe · ${result.source}`,
+    game: finishRepetition(next), source: `Ichthyophobe · ${result.source}`,
     warning: result.warning ?? (result.source.startsWith('Stockfish') ? undefined :
       'Ichthyophobe uses the variant engine in positions Stockfish cannot analyze safely.'),
   };

@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { describe, expect, it, vi } from 'vitest';
 import { chooseAI, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from './ai';
-import { DRAWBACKS, index, legalMoves, newGame, play, uci, type Game } from './game';
+import { DRAWBACKS, index, legalMoves, newGame, play, positionKey, repetitionCount, uci, type Game } from './game';
 import { needsEngineBan } from './drawback-state';
 
 function fakeEngine(best = 'e2e4') {
@@ -27,6 +27,21 @@ function bare(): Game {
 }
 
 describe('AI constraints', () => {
+  it('finishes a pending repetition draw after resolving the engine restriction', async () => {
+    const g = play(newGame('horse', 'ichthyophobe', 42), { from: index('g1'), to: index('f3') });
+    g.repetitions = { [positionKey(g)]: 3 };
+    const { port } = fakeEngine('g8f6');
+    const client = new StockfishClient(port);
+    try {
+      const resolved = await resolveEngineBan(g, client, 20);
+      expect(resolved.game.result).toEqual({ winner: null, reason: 'Threefold repetition' });
+      expect(repetitionCount(resolved.game)).toBe(3);
+      expect(resolved.game.history).toHaveLength(1);
+      expect(g.result).toBeNull();
+    } finally {
+      client.dispose();
+    }
+  });
   it.each(DRAWBACKS)('returns only permitted standard roots for $name', d => {
     const g = newGame(d.id, 'horse', 42);
     const allowed = new Set(legalMoves(g).map(uci));

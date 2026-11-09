@@ -27,6 +27,64 @@ async function loadPosition(page: import('@playwright/test').Page, game: Game, m
   await page.goto('/');
   if (mode === 'local') await page.getByRole('button', { name: /I’m the .* player/ }).click();
 }
+test('repetition notice survives reload and third occurrence shows a draw with both drawbacks', async ({ page }) => {
+  const cycle = [['g1', 'f3'], ['g8', 'f6'], ['f3', 'g1'], ['f6', 'g8']];
+  const game = newGame('horse', 'horse', 42);
+  await page.goto('/');
+  await page.evaluate(game => localStorage.setItem('drawback-chess-v1', JSON.stringify({
+    version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+  })), game);
+  await page.reload();
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.getByRole('status', { name: 'Position repetition' })).toHaveCount(0);
+  for (const [from, to] of cycle) {
+    await page.locator(`[data-square="${from}"]`).click();
+    await page.locator(`[data-square="${to}"]`).click();
+    await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  }
+  await expect(page.getByRole('status', { name: 'Position repetition' })).toHaveText('Position seen twice. A third occurrence is a draw.');
+  await page.setViewportSize({ width: 375, height: 812 });
+  const notice = page.getByRole('status', { name: 'Position repetition' });
+  await expect(notice).toBeVisible();
+  const bounds = await notice.boundingBox();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(375);
+  await page.reload();
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.getByRole('status', { name: 'Position repetition' })).toBeVisible();
+  for (const [i, [from, to]] of cycle.entries()) {
+    await page.locator(`[data-square="${from}"]`).click();
+    await page.locator(`[data-square="${to}"]`).click();
+    if (i < 3) await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  }
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('heading', { name: 'Draw', exact: true })).toBeVisible();
+  await expect(dialog).toContainText('Threefold repetition');
+  await expect(dialog.getByRole('region', { name: 'White drawback' })).toContainText('Horse Tranquilizer');
+  await expect(dialog.getByRole('region', { name: 'Black drawback' })).toContainText('Horse Tranquilizer');
+  await expect(dialog.locator('.difficulty-badge')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Review board', exact: true }).click();
+  await expect(page.locator('.turn-card h2')).toHaveText('Draw');
+  await expect(page.locator('.player-state')).toHaveText(['Draw', 'Draw']);
+  await page.locator('[data-square="g1"]').click();
+  await expect(page.locator('.legal-square')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Resign', exact: true })).toHaveCount(0);
+  await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('drawback-chess-v1')!);
+    if (saved.game.result.winner !== null || saved.game.history.length !== 8) throw new Error('Draw was not saved');
+  });
+  await page.reload();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('.turn-card h2')).toHaveText('Draw');
+  await expect(page.locator('.opponent-card')).toContainText('Horse Tranquilizer');
+  await page.getByRole('button', { name: /New game/ }).click();
+  await page.getByLabel('White player’s drawback').selectOption('horse');
+  await page.getByLabel('Black player’s drawback').selectOption('horse');
+  await page.getByRole('button', { name: /Let’s play/ }).click();
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.turn-card h2')).toHaveText('White to move.');
+  await expect(page.getByRole('status', { name: 'Position repetition' })).toHaveCount(0);
+});
 test('highlights moves, rejects an illegal destination and plays a real Stockfish reply', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));

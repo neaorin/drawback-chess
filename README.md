@@ -201,10 +201,22 @@ themes. Attribution, source revision, and license are included in
 
 ## Variant rules
 
-There is no check, checkmate, stalemate, repetition draw, or fifty-move draw.
+There is no check, checkmate, stalemate, or fifty-move draw.
 Moving into check, adjacent kings, ignoring threats, and moving pinned pieces
 are legal. You lose when your king is captured or you start a turn without
 legal moves. Individual drawbacks can add further loss conditions.
+
+The third occurrence of a position automatically draws the game (no claim is
+required). A separate notice appears beside the turn information on the second
+occurrence, without replacing drawback guidance. Occurrences need not be consecutive,
+and the initial position counts once. Repetition counts survive reloads and are
+reconstructed from move history for older saves.
+
+This is a board-based house rule: position strings compare piece types/colors/squares,
+the side to move, castling rights, geometrically available pawn en passant, and special
+castled-king capture rights. Hidden drawback state, piece identities, and move counters
+are ignored, even if they change available moves. King capture, drawback losses, and
+having no legal moves take precedence over a repetition draw.
 
 Castling requires the usual unmoved king/rook and empty intervening squares, but
 attacked squares do not prohibit it. On the opponent's next move only, a move
