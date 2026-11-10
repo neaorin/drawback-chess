@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { describe, expect, it, vi } from 'vitest';
 import { chooseAI, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from './ai';
-import { DRAWBACKS, index, legalMoves, newGame, play, positionKey, repetitionCount, uci, type Game } from './game';
+import { DRAWBACKS, index, legalMoves, newGame, other, play, positionKey, repetitionCount, transition, uci, type Game } from './game';
 import { needsEngineBan } from './drawback-state';
 
 function fakeEngine(best = 'e2e4') {
@@ -27,6 +27,62 @@ function bare(): Game {
 }
 
 describe('AI constraints', () => {
+  it('does not send immediately losing orthodox moves when only variant moves meet the deadline', () => {
+    const g = bare();
+    g.drawbacks.w = 'inching-forward';
+    g.turns.w = 5;
+    g.board[index('a2')] = { color: 'b', kind: 'r' };
+    expect(legalMoves(g).some(m => !transition(g, m).result)).toBe(true);
+    expect(stockfishRoots(g)).toEqual([]);
+  });
+
+  it('does not filter Stockfish choices using the opponents hidden loss conditions', () => {
+    const g = bare();
+    const expected = stockfishRoots(g).map(uci);
+    for (const drawback of ['inching-forward', 'boastful', 'ivory-tower', 'modest'] as const) {
+      g.drawbacks.b = drawback;
+      g.turns.b = 6;
+      expect(stockfishRoots(g).map(uci)).toEqual(expected);
+    }
+  });
+
+  it('keeps legal Stockfish choices when every move loses to the deadline', () => {
+    const g = newGame('inching-forward', 'horse', 42);
+    g.turns.w = 5;
+    expect(stockfishRoots(g).length).toBeGreaterThan(0);
+    expect(stockfishRoots(g).every(m => transition(g, m).result?.winner === 'b')).toBe(true);
+  });
+
+  it.each(['w', 'b'] as const)('excludes immediate Inching Forward losses from Stockfish choices for %s', async color => {
+    for (const completed of [5, 11, 17]) {
+      const g = bare();
+      g.turn = color;
+      g.drawbacks[color] = 'inching-forward';
+      g.turns[color] = completed;
+      const home = color === 'w' ? 'e1' : 'e8';
+      const rank = color === 'w' ? completed === 5 ? 1 : completed === 11 ? 2 : 3 :
+        completed === 5 ? 8 : completed === 11 ? 7 : 6;
+      g.board[index(home)] = null;
+      g.board[index(`e${rank}`)] = { color, kind: 'k' };
+      g.board[index(color === 'w' ? 'a1' : 'a8')] = { color, kind: 'r' };
+      const before = JSON.stringify(g);
+      const roots = stockfishRoots(g);
+      expect(roots.length).toBeGreaterThan(0);
+      expect(roots.every(m => g.board[m.from]?.kind === 'k')).toBe(true);
+      expect(roots.every(m => transition(g, m).result?.winner !== other(color))).toBe(true);
+      expect(legalMoves(g).some(m => transition(g, m).result?.winner === other(color))).toBe(true);
+      const { port, sent } = fakeEngine(uci(roots[0]));
+      const client = new StockfishClient(port);
+      try {
+        const choice = await chooseAI(g, client, 20);
+        expect(play(g, choice.move).result).toBeNull();
+        expect(sent).toContain(`go movetime 20 searchmoves ${roots.map(uci).join(' ')}`);
+        expect(play(g, variantMove(g)).result?.winner).not.toBe(other(color));
+      } finally { client.dispose(); }
+      expect(JSON.stringify(g)).toBe(before);
+    }
+  });
+
   it('finishes a pending repetition draw after resolving the engine restriction', async () => {
     const g = play(newGame('horse', 'ichthyophobe', 42), { from: index('g1'), to: index('f3') });
     g.repetitions = { [positionKey(g)]: 3 };

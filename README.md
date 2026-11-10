@@ -386,6 +386,11 @@ An opponent without Fog of War still sees and analyzes the full board normally.
 3. Intersect variant-legal moves with orthodox legal moves and send the resulting
    UCI list: `position fen ...`, then
    `go movetime 400 searchmoves e7e5 ...`.
+   Before intersecting, exclude moves that immediately lose under the AI's own
+   drawback when a surviving alternative exists (for example, missing Inching
+   Forward's king-advancement deadline). If all surviving moves are non-orthodox,
+   use variant search instead. This check ignores the opponent's hidden drawback
+   and does not change the moves a human is allowed to play.
 4. Accept `bestmove` only if it belongs to that approved list.
 5. If the position has no safe orthodox roots, use a small alpha-beta variant
    search. Worker errors/timeouts also use this fallback, with a visible warning

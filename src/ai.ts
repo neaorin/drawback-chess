@@ -82,7 +82,15 @@ export function stockfishRoots(g: Game): Move[] {
   // Stockfish cannot safely search a position where the non-moving king is attacked.
   if (enemyKing < 0 || chess.isAttacked(square(enemyKing) as Square, g.turn)) return [];
   const orthodox = new Set(chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion ?? '')));
-  return legalMoves(g).filter(m => orthodox.has(uci(m)));
+  const visible: Game = { ...g, drawbacks: { ...g.drawbacks, [other(g.turn)]: null } };
+  const moves = legalMoves(g);
+  const surviving = moves.filter(m => {
+    const result = transition(visible, m, false).result;
+    return !result || result.winner === null || result.winner === g.turn;
+  });
+  // Stockfish cannot see variant loss conditions. Fall back to variant search if
+  // surviving moves exist only outside orthodox chess.
+  return (surviving.length ? surviving : moves).filter(m => orthodox.has(uci(m)));
 }
 
 const values = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
