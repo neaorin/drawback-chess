@@ -303,6 +303,9 @@ Permanent terrain and capture rules have no extra banner, except Secret Garden's
 square-location message.
 Reconnaissance lists all researched capture types and currently researching types,
 excluding types already researched: “Can capture pawns, knights, researching queens.”
+Velociraptor lists the capturable piece types moved on the opponent's last three
+moves: “Can capture pawns, knights, rooks.” Before any opposing moves it shows
+“Can capture none.”
 Unspooling always shows its remaining movement budget on the player's turn:
 “Distance left: 100.” The budget uses only that player's accumulated move distances.
 Three Check shows “Checks left: 3.” on the player's turn, counting down with

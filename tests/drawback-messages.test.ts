@@ -44,6 +44,24 @@ const suppressed = [
 ] as const satisfies readonly DrawbackId[];
 
 describe('situational messages', () => {
+  it.each(['w', 'b'] as const)('lists Velociraptor capture types from the last three enemy moves for %s', color => {
+    const g = position('velociraptor', color);
+    const opponent = color === 'w' ? 'b' : 'w';
+    expect(drawbackMoveInfo(g)).toBe('Can capture none.');
+    g.rules!.events = [
+      event(opponent, { kind: 'q' }),
+      event(color, { kind: 'k' }),
+      event(opponent, { kind: 'p' }),
+      event(color, { kind: 'b' }),
+      event(opponent, { kind: 'n' }),
+      event(opponent, { kind: 'r' }),
+    ];
+    expect(drawbackMoveInfo(g)).toBe('Can capture pawns, knights, rooks.');
+    g.rules!.events.push(event(opponent, { kind: 'n' }));
+    expect(drawbackMoveInfo(g)).toBe('Can capture knights, rooks.');
+    g.rules!.events.push(event(opponent, { kind: 'k' }));
+    expect(drawbackMoveInfo(g)).toBe('Can capture rooks, knights, kings.');
+  });
   it.each(['w', 'b'] as const)('shows checks left for Three Check for %s', color => {
     const g = position('three-check', color);
     for (const checks of [0, 1, 2]) {

@@ -144,7 +144,8 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     case 'monkey-see': return cannotCaptureTypes(captureBlocked);
     case 'reconnaissance':
       return `Can capture ${types(player.studied) || 'none'}, researching ${types(player.studying.filter(kind => !player.studied.includes(kind))) || 'none'}.`;
-    case 'velociraptor': return cannotCaptureTypes(captureBlocked, true);
+    case 'velociraptor':
+      return `Can capture ${types(enemy.slice(-3).map(e => e.kind)) || 'none'}.`;
     case 'now-kiss': return cannotCaptureTypes(captures.filter(m => ['b', 'n', 'r'].includes(type(m)) && !player.kissed.includes(type(m))));
     case 'nurturer':
     case 'triple-play': return captureBlocked.some(m => victim(m) === 'k') ? 'Cannot capture their king yet.' : null;
