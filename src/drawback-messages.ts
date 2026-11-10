@@ -171,7 +171,7 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     }
     case 'unspooling': {
       const remaining = 100 - own.reduce((sum, e) => sum + distance(e.from, e.to), 0);
-      return remaining <= 20 || blocked.length ? `${remaining} distance remaining.` : null;
+      return `Distance left: ${remaining}.`;
     }
     case 'ichthyophobe': {
       const ban = state.engineBans[g.turns.w + g.turns.b];

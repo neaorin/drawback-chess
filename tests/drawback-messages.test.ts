@@ -213,6 +213,16 @@ describe('situational messages', () => {
     expect(drawbackMoveInfo(g)).toBe('3 non-king captures remaining.');
     g.drawbacks.w = 'unspooling';
     g.rules!.events = Array.from({ length: 8 }, () => event('w', { from: index('a1'), to: index('f6') }));
-    expect(drawbackMoveInfo(g)).toBe('20 distance remaining.');
+    expect(drawbackMoveInfo(g)).toBe('Distance left: 20.');
+  });
+
+  it.each(['w', 'b'] as const)('always shows Unspooling distance left for %s', color => {
+    const g = position('unspooling', color);
+    expect(drawbackMoveInfo(g)).toBe('Distance left: 100.');
+    g.rules!.events = [
+      event(color, { from: index('a1'), to: index('f6') }),
+      event(color === 'w' ? 'b' : 'w', { from: index('a8'), to: index('h1') }),
+    ];
+    expect(drawbackMoveInfo(g)).toBe('Distance left: 90.');
   });
 });

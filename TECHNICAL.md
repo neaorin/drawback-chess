@@ -303,6 +303,8 @@ Permanent terrain and capture rules have no extra banner, except Secret Garden's
 square-location message.
 Reconnaissance lists all researched capture types and currently researching types,
 excluding types already researched: “Can capture pawns, knights, researching queens.”
+Unspooling always shows its remaining movement budget on the player's turn:
+“Distance left: 100.” The budget uses only that player's accumulated move distances.
 Conditional “if able” obligations appear only when a qualifying move exists. Queen
 Disguise and The Scent of Blood provide hints for the selected piece.
 Messages disappear during slides/handoff and at game over; historical review
