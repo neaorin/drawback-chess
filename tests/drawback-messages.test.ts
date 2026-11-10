@@ -72,6 +72,26 @@ describe('situational messages', () => {
     g.rules!.players[color].checks = 0;
     expect(drawbackMoveInfo(g)).toBe('Checks left: 3.');
   });
+  it.each(['w', 'b'] as const)('lists Monkey See capture piece types for %s', color => {
+    const g = position('monkey-see', color, {
+      a1: color === 'w' ? 'wr' : 'br',
+      a8: color === 'w' ? 'bn' : 'wn',
+      b1: color === 'w' ? 'wb' : 'bb',
+      b8: color === 'w' ? 'bp' : 'wp',
+      h1: color === 'w' ? 'wk' : 'bk',
+      h8: color === 'w' ? 'bk' : 'wk',
+    });
+    const enemy = color === 'w' ? 'b' : 'w';
+    expect(drawbackMoveInfo(g)).toBe('Can capture with none.');
+    g.rules!.events.push(
+      event(enemy, { kind: 'r', capture: index('a4') }),
+      event(color, { kind: 'p', capture: index('b3') }),
+      event(enemy, { kind: 'b', capture: index('c4') }),
+      event(enemy, { kind: 'r', capture: index('d4') }),
+      event(enemy, { kind: 'p' }),
+    );
+    expect(drawbackMoveInfo(g)).toBe('Can capture with rooks, bishops.');
+  });
   it('suppresses static and loss-condition messages even when pieces and captures exist', () => {
     expect(suppressed.length).toBeGreaterThan(80);
     for (const id of suppressed) {

@@ -318,6 +318,8 @@ excluding types already researched: “Can capture pawns, knights, researching q
 Velociraptor lists the capturable piece types moved on the opponent's last three
 moves: “Can capture pawns, knights, rooks.” Before any opposing moves it shows
 “Can capture none.”
+Monkey See lists the piece types that currently have legal capture moves, for
+example “Can capture with rooks, bishops.”
 Unspooling always shows its remaining movement budget on the player's turn:
 “Distance left: 100.” The budget uses only that player's accumulated move distances.
 Three Check shows “Checks left: 3.” on the player's turn, counting down with

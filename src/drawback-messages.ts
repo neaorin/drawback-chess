@@ -141,7 +141,9 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     case 'horse-eats-first': return captureBlocked.length ? 'Can only capture with knights.' : null;
     case 'theocracy': return captureBlocked.length ? 'Can only capture with bishops.' : null;
     case 'leveling-up': return cannotCaptureTypes(captureBlocked, true, true);
-    case 'monkey-see': return cannotCaptureTypes(captureBlocked);
+    case 'monkey-see':
+      const capturable = enemy.filter(e => e.capture !== undefined).map(e => e.kind);
+      return capturable.length ? `Can capture with ${types(capturable) || 'none'}.` : 'Cannot capture.';
     case 'reconnaissance':
       return `Can capture ${types(player.studied) || 'none'}, researching ${types(player.studying.filter(kind => !player.studied.includes(kind))) || 'none'}.`;
     case 'velociraptor':
