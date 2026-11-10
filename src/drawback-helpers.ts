@@ -2,6 +2,7 @@ import { pseudoMoves, type Color, type Game, type Kind, type Move } from './game
 
 export const row = (at: number) => Math.floor(at / 8);
 export const file = (at: number) => at % 8;
+export const thunderdomeSquare = (at: number) => row(at) >= 2 && row(at) <= 5 && file(at) >= 2 && file(at) <= 5;
 export function secretGardenSquares(anchor: number): [number, number] {
   // Keep old h-file garden targets in the pair without wrapping onto another rank.
   const left = file(anchor) === 7 ? anchor - 1 : anchor;

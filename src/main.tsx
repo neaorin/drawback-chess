@@ -7,7 +7,7 @@ import { loadNewGameChoices, loadSaved, NEW_GAME_KEY, SAVE_KEY, type Mode, type 
 import { DIFFICULTY_LEVELS, difficultyLevel, type DrawbackChoice } from './drawback-catalogue';
 import { randomDrawback } from './game';
 import './styles.css';
-import { preferredCapture, secretGardenSquares, unluckySquares } from './drawback-helpers';
+import { preferredCapture, secretGardenSquares, thunderdomeSquare, unluckySquares } from './drawback-helpers';
 
 const names: Record<Kind, string> = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
 function Glyph({ piece }: { piece: Piece }) {
@@ -176,6 +176,7 @@ function App() {
     .filter(color => terrainVisible(color, 'secret-garden'))
     .flatMap(color => secretGardenSquares(rulesFor(displayedGame).params[color].square)));
   const showRiver = (['w', 'b'] as const).some(color => terrainVisible(color, 'bridge-over-troubled-water'));
+  const showThunderdome = (['w', 'b'] as const).some(color => terrainVisible(color, 'thunderdome'));
   const moveInfo = game.result || handoff || sliding ? null : drawbackMoveInfo(displayedGame, viewer, reviewPosition ? null : selected);
   const active = !reviewPosition && !game.result && !needsEngineBan(game) && !busy && !sliding && !handoff && (mode === 'local' || game.turn === human) && !modal;
   const moves = legalMoves(game);
@@ -388,6 +389,7 @@ function App() {
                 const target = seen && targets.some(m => m.to === i);
                 const sun = sunSquares.has(i);
                 const garden = gardenSquares.has(i);
+                const thunderdome = showThunderdome && thunderdomeSquare(i);
                 const river = showRiver && (Math.floor(i / 8) === 3 || Math.floor(i / 8) === 4) && i % 8 !== 3 && i % 8 !== 4;
                 const volcano = volcanoSquares.has(i);
                 const volcanoAdjacent = [...volcanoSquares].some(at =>
@@ -401,7 +403,7 @@ function App() {
                   '--slide-x': `${(slideFrom % 8 - i % 8) * (flipped ? -100 : 100)}%`,
                   '--slide-y': `${(Math.floor(slideFrom / 8) - Math.floor(i / 8)) * (flipped ? -100 : 100)}%`,
                 } as React.CSSProperties;
-                return <button key={i} data-square={square(i)} aria-label={`${square(i)}${unknown ? ' occupied by an unknown enemy piece; pawn blocked' : !seen ? ' fog of war' : p ? ` ${colorName(p.color)} ${names[p.kind]}` : ' empty'}${river ? ' river' : ''}${sun ? ' sun target' : ''}${garden ? ' secret garden' : ''}${volcano ? ' volcano' : ''}${volcanoAdjacent ? ' volcano danger zone' : ''}${seen && threatenedKings.has(i) ? ' under attack' : ''}${target ? ' legal destination' : ''}`}
+                return <button key={i} data-square={square(i)} aria-label={`${square(i)}${unknown ? ' occupied by an unknown enemy piece; pawn blocked' : !seen ? ' fog of war' : p ? ` ${colorName(p.color)} ${names[p.kind]}` : ' empty'}${river ? ' river' : ''}${sun ? ' sun target' : ''}${garden ? ' secret garden' : ''}${thunderdome ? ' thunderdome' : ''}${volcano ? ' volcano' : ''}${volcanoAdjacent ? ' volcano danger zone' : ''}${seen && threatenedKings.has(i) ? ' under attack' : ''}${target ? ' legal destination' : ''}`}
                   aria-pressed={seen && selected === i} className={`square ${dark ? 'dark-square' : 'light-square'} ${!seen && !unknown ? 'fog-square' : ''} ${unknown ? 'unknown-square' : ''} ${seen && selected === i ? 'selected-square' : ''} ${isLast ? 'last-square' : ''} ${target ? 'legal-square' : ''} ${slideFrom !== null ? 'sliding-square' : ''}`}
                   onClick={() => chooseSquare(i)} onKeyDown={e => boardKey(e, i)} draggable={active && p?.color === game.turn}
                   onDragStart={e => { if (!active || p?.color !== game.turn) { e.preventDefault(); return; } dragging.current = i; setSelected(i); e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; }}
@@ -413,6 +415,7 @@ function App() {
                   {unluckyForbidden.has(i) && <span className="unlucky-forbidden" role="img" aria-label="Forbidden destination this turn" />}
                   {seen && mandatoryCaptures.has(i) && <span className="mandatory-capture" role="img" aria-label="Mandatory capture target" />}
                   {river && <span className="river-overlay" aria-hidden="true" />}
+                  {thunderdome && <span className="thunderdome-overlay" aria-hidden="true" />}
                   {volcanoAdjacent && <span className="volcano-danger" aria-hidden="true" />}
                   {sun && <svg className="sun-sprite" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="13" /><path d="M32 3v9m0 40v9M3 32h9m40 0h9M11.5 11.5l6.4 6.4m28.2 28.2 6.4 6.4m0-41-6.4 6.4M17.9 46.1l-6.4 6.4" /></svg>}
                   {garden && <svg className="garden-sprite" viewBox="0 0 64 64" aria-hidden="true"><path className="garden-stem" d="M32 33v25M32 49Q13 49 15 38q14-1 17 11M32 55q18-1 17-13-14 0-17 13" /><g className="garden-petals"><ellipse cx="32" cy="15" rx="8" ry="11" /><ellipse cx="44" cy="24" rx="11" ry="8" transform="rotate(-25 44 24)" /><ellipse cx="39" cy="37" rx="8" ry="11" transform="rotate(-30 39 37)" /><ellipse cx="25" cy="37" rx="8" ry="11" transform="rotate(30 25 37)" /><ellipse cx="20" cy="24" rx="11" ry="8" transform="rotate(25 20 24)" /></g><circle className="garden-center" cx="32" cy="27" r="7" /></svg>}

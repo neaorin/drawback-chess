@@ -324,6 +324,50 @@ test('secret garden flowers mark both squares, follow flip and reload, and respe
   await expect(page.locator('.garden-sprite')).toHaveCount(4);
 });
 
+test('thunderdome highlights all 16 central squares and respects terrain privacy', async ({ page }) => {
+  const game = newGame('thunderdome', 'horse', 42);
+  await page.addInitScript(game => {
+    if (!localStorage.getItem('dome-seeded')) {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+      localStorage.setItem('dome-seeded', 'true');
+    }
+  }, game);
+  await page.goto('/');
+  await expect(page.locator('.thunderdome-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  const checkDome = async () => {
+    await expect(page.locator('.thunderdome-overlay')).toHaveCount(16);
+    for (const file of 'cdef') for (const rank of [3, 4, 5, 6]) {
+      await expect(page.locator(`[data-square="${file}${rank}"] .thunderdome-overlay`)).toHaveCount(1);
+      await expect(page.locator(`[data-square="${file}${rank}"]`)).toHaveAttribute('aria-label', /thunderdome/);
+    }
+    const style = await page.locator('.thunderdome-overlay').first().evaluate(el => ({
+      opacity: getComputedStyle(el).opacity, background: getComputedStyle(el).backgroundColor,
+    }));
+    expect(Number(style.opacity)).toBeGreaterThan(0);
+    expect(Number(style.opacity)).toBeLessThan(0.3);
+    expect(style.background).not.toBe('rgba(0, 0, 0, 0)');
+  };
+  await checkDome();
+  await page.getByRole('button', { name: /Flip board/ }).click();
+  await checkDome();
+  await page.goto('/?scoutTheme=dark');
+  await expect(page.locator('.thunderdome-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await checkDome();
+  await page.locator('[data-square="a2"]').click();
+  await page.locator('[data-square="a3"]').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('.thunderdome-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.thunderdome-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Reveal White drawback', exact: true }).click();
+  await page.getByRole('button', { name: 'Reveal White’s drawback', exact: true }).click();
+  await checkDome();
+});
+
 test('river markers leave the center clear and follow orientation, reload and reveal privacy', async ({ page }) => {
   const game = newGame('bridge-over-troubled-water', 'horse', 42);
   await page.addInitScript(game => {

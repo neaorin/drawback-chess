@@ -337,7 +337,9 @@ uses these conventions:
   Knights only require dry start and end squares, including the bridge;
   intervening water does not restrict their jumps.
   Water rises from each player's home rank.
-  Thunderdome is the central 4-by-4 area.
+  Thunderdome is the central 4-by-4 area (c3–f6), marked with a light reddish
+  background. Like other terrain, it stays private until revealed, hides during
+  local handoff, and is visible to both players after game over.
 - A queen retains its queen identity and artwork under Drag, Queen Disguise,
   and Shapeshifter; its available destinations enforce its altered movement.
   Promoted queens use the same player's Shapeshifter form.

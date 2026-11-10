@@ -1,7 +1,7 @@
 import { other, pseudoMoves, type Game, type Kind, type Move } from './game';
 import {
   adjacent, advance, attacked, defended, distance, file, king, rightward, rim, row,
-  secretGardenSquares, shade, squares, value,
+  secretGardenSquares, shade, squares, thunderdomeSquare, value,
 } from './drawback-helpers';
 import type { RuleContext } from './drawback-types';
 
@@ -26,7 +26,6 @@ export const POSITIONAL_IDS = [
 ] as const;
 
 const center = (at: number) => row(at) >= 3 && row(at) <= 4 && file(at) >= 3 && file(at) <= 4;
-const dome = (at: number) => row(at) >= 2 && row(at) <= 5 && file(at) >= 2 && file(at) <= 5;
 
 export function positionalMoves(ctx: RuleContext): Move[] {
   const { g, color, moves, params } = ctx;
@@ -226,8 +225,8 @@ export function positionalMoves(ctx: RuleContext): Move[] {
     case 'stop-stalling':
       return every((from, to) => row(from) !== row(to));
     case 'thunderdome': {
-      const count = g.board.filter((p, at) => p && dome(at)).length;
-      return every((from, to) => !dome(from) || dome(to) || count === 1);
+      const count = g.board.filter((p, at) => p && thunderdomeSquare(at)).length;
+      return every((from, to) => !thunderdomeSquare(from) || thunderdomeSquare(to) || count === 1);
     }
     case 'torchlight':
       return every((from, to, type, m) => type === 'p' || near(g, from, color, 'p') || near(ctx.after(m), to, color, 'p'));
