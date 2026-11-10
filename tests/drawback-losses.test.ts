@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { DRAWBACKS, index, legalMoves, newGame, play, positionAt, pseudoMoves, type Color, type DrawbackId, type Game, type Kind } from './game';
-import { drawbackLoss, LOSS_IDS } from './drawback-losses';
-import { initialRules, movementKind, needsEngineBan, parameterDescription, rulesFor } from './drawback-state';
-import { isSaved } from './storage';
+import { DRAWBACKS, index, legalMoves, newGame, play, positionAt, pseudoMoves, type Color, type DrawbackId, type Game, type Kind } from '../src/game';
+import { drawbackLoss, LOSS_IDS } from '../src/drawback-losses';
+import { initialRules, movementKind, needsEngineBan, parameterDescription, rulesFor } from '../src/drawback-state';
+import { isSaved } from '../src/storage';
 
 function fixture(id: DrawbackId, pieces: Record<string, `${Color}${Kind}`> = {}, turn: Color = 'w'): Game {
   const g = newGame(id, 'horse', 1234);

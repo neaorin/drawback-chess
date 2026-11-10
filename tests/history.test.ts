@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { fen, index, newGame, play, positionAt, type Game } from './game';
+import { fen, index, newGame, play, positionAt, type Game } from '../src/game';
 
 it('reconstructs every position and rule state including castling without altering the live game', () => {
   const positions: Game[] = [newGame('fog', 'command')];

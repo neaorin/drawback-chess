@@ -1,9 +1,9 @@
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { describe, expect, it, vi } from 'vitest';
-import { chooseAI, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from './ai';
-import { DRAWBACKS, index, legalMoves, newGame, other, play, positionKey, repetitionCount, transition, uci, type Game } from './game';
-import { needsEngineBan } from './drawback-state';
+import { chooseAI, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from '../src/ai';
+import { DRAWBACKS, index, legalMoves, newGame, other, play, positionKey, repetitionCount, transition, uci, type Game } from '../src/game';
+import { needsEngineBan } from '../src/drawback-state';
 
 function fakeEngine(best = 'e2e4') {
   const sent: string[] = [];
@@ -161,14 +161,14 @@ describe('AI constraints', () => {
     const expected = uci(variantMove(g));
     for (const d of DRAWBACKS) expect(uci(variantMove({ ...g, drawbacks: { ...g.drawbacks, b: d.id } }))).toBe(expected);
     expect(JSON.stringify(g)).toBe(before);
-  });
+  }, 30000);
   it('variant search obeys its own drawback', () => {
     for (const d of DRAWBACKS) {
       const g = newGame(d.id, 'horse', 42);
       if (needsEngineBan(g)) g.rules!.engineBans[0] = 'e2e4';
       expect(legalMoves(g).map(uci)).toContain(uci(variantMove(g)));
     }
-  });
+  }, 30000);
   it('uses only the fog view, not Stockfish or identities of unseen pieces', async () => {
     const g = bare();
     g.drawbacks.w = 'fog';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { attackedKings, fogVisibility, index, legalMoves, newGame, play, uci, visibleKingAttacks, type Color, type Game, type Kind } from './game';
-import { isSaved } from './storage';
+import { attackedKings, fogVisibility, index, legalMoves, newGame, play, uci, visibleKingAttacks, type Color, type Game, type Kind } from '../src/game';
+import { isSaved } from '../src/storage';
 
 function position(pieces: Record<string, `${Color}${Kind}`>, color: Color = 'w'): Game {
   const g = newGame('fog', 'fog');

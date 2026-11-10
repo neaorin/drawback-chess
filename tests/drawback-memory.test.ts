@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { drawbackMoveInfo, index, legalMoves, newGame, play, type Color, type DrawbackId, type Game, type Kind } from './game';
-import { initialRules } from './drawback-state';
-import { variantMove } from './ai';
+import { drawbackMoveInfo, index, legalMoves, newGame, play, type Color, type DrawbackId, type Game, type Kind } from '../src/game';
+import { initialRules } from '../src/drawback-state';
+import { variantMove } from '../src/ai';
 
 function setup(id: DrawbackId, pieces: Record<string, `${Color}${Kind}`>): Game {
   const g = newGame(id, 'horse', 42);

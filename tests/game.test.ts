@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DRAWBACKS, attackedKings, drawbackMoveInfo, fen, index, legalMoves, newGame, play, pseudoMoves, square, uci, type Color, type DrawbackId, type Game, type Kind } from './game';
+import { DRAWBACKS, attackedKings, drawbackMoveInfo, fen, index, legalMoves, newGame, play, pseudoMoves, square, uci, type Color, type DrawbackId, type Game, type Kind } from '../src/game';
 
 function position(pieces: Record<string, `${Color}${Kind}`>, drawback: DrawbackId | null = null, turn: Color = 'w'): Game {
   const g = newGame('horse', 'horse');

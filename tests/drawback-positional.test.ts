@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { index, newGame, pseudoMoves, square, uci, type Color, type DrawbackId, type Game, type Kind, type Move } from './game';
-import { preview } from './drawback-helpers';
-import { POSITIONAL_IDS, positionalMoves } from './drawback-positional';
-import type { RuleContext, RuleParameters, RuleState } from './drawback-types';
+import { index, newGame, pseudoMoves, square, uci, type Color, type DrawbackId, type Game, type Kind, type Move } from '../src/game';
+import { preview } from '../src/drawback-helpers';
+import { POSITIONAL_IDS, positionalMoves } from '../src/drawback-positional';
+import type { RuleContext, RuleParameters, RuleState } from '../src/drawback-types';
 
 type Pieces = Record<string, `${Color}${Kind}`>;
 type Scenario = {

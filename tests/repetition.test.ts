@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { finishRepetition, index, legalMoves, newGame, play, positionAt, positionKey, repetitionCount, restoreRepetitions, transition, type Game } from './game';
+import { finishRepetition, index, legalMoves, newGame, play, positionAt, positionKey, repetitionCount, restoreRepetitions, transition, type Game } from '../src/game';
 
 const cycle = [['g1', 'f3'], ['g8', 'f6'], ['f3', 'g1'], ['f6', 'g8']] as const;
 function moves(g: Game, sequence = cycle): Game {

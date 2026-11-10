@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { index, newGame, type Color, type DrawbackId, type Kind, type Move } from './game';
-import { preview, randomNumber, shade } from './drawback-helpers';
-import { TEMPORAL_IDS, TEMPORAL_SALTS, temporalMoves } from './drawback-temporal';
-import type { PlayerMemory, RuleContext, RuleEvent, RuleState } from './drawback-types';
+import { index, newGame, type Color, type DrawbackId, type Kind, type Move } from '../src/game';
+import { preview, randomNumber, shade } from '../src/drawback-helpers';
+import { TEMPORAL_IDS, TEMPORAL_SALTS, temporalMoves } from '../src/drawback-temporal';
+import type { PlayerMemory, RuleContext, RuleEvent, RuleState } from '../src/drawback-types';
 
 const move = (from: string, to: string, capture?: string): Move => ({
   from: index(from), to: index(to), ...(capture ? { capture: index(capture) } : {}),

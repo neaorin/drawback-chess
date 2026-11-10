@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { index, newGame, play, repetitionCount } from './game';
-import { isNewGameChoices, isSaved, loadNewGameChoices, loadSaved, type Saved } from './storage';
+import { index, newGame, play, repetitionCount } from '../src/game';
+import { isNewGameChoices, isSaved, loadNewGameChoices, loadSaved, type Saved } from '../src/storage';
 
 const saved = (): Saved => ({ version: 1, game: newGame('horse', 'cess'), mode: 'ai', human: 'w', flipped: false, strength: 400 });
 describe('New Game choices', () => {

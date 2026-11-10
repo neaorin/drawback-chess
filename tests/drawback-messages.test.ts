@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DRAWBACKS, drawbackMoveInfo, index, newGame, type Color, type DrawbackId, type Game, type Kind } from './game';
-import { initialRules } from './drawback-state';
-import type { RuleEvent } from './drawback-types';
+import { DRAWBACKS, drawbackMoveInfo, index, newGame, type Color, type DrawbackId, type Game, type Kind } from '../src/game';
+import { initialRules } from '../src/drawback-state';
+import type { RuleEvent } from '../src/drawback-types';
 
 function position(id: DrawbackId, color: Color = 'w', pieces: Record<string, `${Color}${Kind}`> = {}): Game {
   const g = newGame(id, id, 42);

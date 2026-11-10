@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { drawbackMoveInfo, index, legalMoves, newGame, other, play, positionAt, restoreRepetitions, square } from './game';
-import { secretGardenSquares } from './drawback-helpers';
-import { initialRules } from './drawback-state';
-import { isSaved } from './storage';
+import { drawbackMoveInfo, index, legalMoves, newGame, other, play, positionAt, restoreRepetitions, square } from '../src/game';
+import { secretGardenSquares } from '../src/drawback-helpers';
+import { initialRules } from '../src/drawback-state';
+import { isSaved } from '../src/storage';
 
 describe('Secret Garden', () => {
   it.each(['w', 'b'] as const)('assigns stable random adjacent squares on the correct rank for %s', color => {

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DRAWBACKS, legalMoves, newGame, play, positionAt, randomDrawback, uci } from './game';
-import { POSITIONAL_IDS } from './drawback-positional';
-import { TEMPORAL_IDS } from './drawback-temporal';
-import { LOSS_IDS } from './drawback-losses';
-import { needsEngineBan } from './drawback-state';
-import { DIFFICULTY_LEVELS, difficultyLevel } from './drawback-catalogue';
+import { DRAWBACKS, legalMoves, newGame, play, positionAt, randomDrawback, uci } from '../src/game';
+import { POSITIONAL_IDS } from '../src/drawback-positional';
+import { TEMPORAL_IDS } from '../src/drawback-temporal';
+import { LOSS_IDS } from '../src/drawback-losses';
+import { needsEngineBan } from '../src/drawback-state';
+import { DIFFICULTY_LEVELS, difficultyLevel } from '../src/drawback-catalogue';
 
 describe('complete glossary coverage', () => {
   it.each(DIFFICULTY_LEVELS)('random $label draws only from that band', level => {
