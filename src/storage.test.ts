@@ -1,8 +1,29 @@
 import { describe, expect, it, vi } from 'vitest';
 import { index, newGame, play, repetitionCount } from './game';
-import { isSaved, loadSaved, type Saved } from './storage';
+import { isNewGameChoices, isSaved, loadNewGameChoices, loadSaved, type Saved } from './storage';
 
 const saved = (): Saved => ({ version: 1, game: newGame('horse', 'cess'), mode: 'ai', human: 'w', flipped: false, strength: 400 });
+describe('New Game choices', () => {
+  const choices = { mode: 'ai', human: 'b', strength: 900, drawback: 'random-easy', opponentDrawback: 'secret-garden' };
+  it('restores validated selections including random difficulty bands', () => {
+    vi.stubGlobal('localStorage', { getItem: () => JSON.stringify(choices) });
+    try {
+      expect(loadNewGameChoices()).toEqual({ choices, error: null });
+      expect(isNewGameChoices({ ...choices, drawback: 'random', opponentDrawback: 'random-hard' })).toBe(true);
+    } finally { vi.unstubAllGlobals(); }
+  });
+  it('rejects invalid values and reports corrupt preferences without discarding the game', () => {
+    for (const [key, value] of Object.entries({ mode: 'online', human: 'x', strength: '900', drawback: 'unknown', opponentDrawback: null })) {
+      expect(isNewGameChoices({ ...choices, [key]: value })).toBe(false);
+    }
+    vi.stubGlobal('localStorage', { getItem: () => '{bad' });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      expect(loadNewGameChoices()).toEqual({ choices: null, error: expect.stringContaining('could not be restored') });
+      expect(log).toHaveBeenCalled();
+    } finally { log.mockRestore(); vi.unstubAllGlobals(); }
+  });
+});
 describe('saved game validation', () => {
   it('accepts a round-tripped game', () => expect(isSaved(JSON.parse(JSON.stringify(saved())))).toBe(true));
   it('accepts draws but rejects invalid winners and repetition counts', () => {

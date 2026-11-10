@@ -201,6 +201,11 @@ themes. Attribution, source revision, and license are included in
 
 ## Variant rules
 
+The New Game dialog remembers opponent mode, player color, engine thinking time,
+and both drawback selections (including random difficulty bands) in browser storage.
+Choices are retained even when the dialog is closed without starting a game and
+survive page reloads. Changing these choices does not change the current game.
+
 There is no check, checkmate, stalemate, or fifty-move draw.
 Moving into check, adjacent kings, ignoring threats, and moving pinned pieces
 are legal. You lose when your king is captured or you start a turn without

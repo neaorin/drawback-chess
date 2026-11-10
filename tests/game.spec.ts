@@ -377,7 +377,7 @@ test('new game offers every drawback and applies the selection to White or Black
   for (const [color, drawback] of [['w', 'command'], ['b', 'alternator']] as const) {
     await page.getByRole('button', { name: /New game/ }).click();
     const choice = page.getByLabel('Your drawback', { exact: true });
-    await expect(choice).toHaveValue('random');
+    await expect(choice).toHaveValue(color === 'w' ? 'random' : 'command');
     await expect(choice.locator('option')).toHaveCount(DRAWBACKS.length + 6);
     await page.getByLabel('Play as').selectOption(color);
     await choice.selectOption(drawback);
@@ -392,6 +392,31 @@ test('new game offers every drawback and applies the selection to White or Black
   }
 });
 
+test('new game remembers all choices across cancel, reload, and starting a game', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /New game/ }).click();
+  await page.getByLabel('Play as').selectOption('b');
+  await page.getByLabel('Engine thinking time').selectOption('900');
+  await page.getByLabel('Your drawback', { exact: true }).selectOption('random-easy');
+  await page.getByLabel('Opponent’s drawback', { exact: true }).selectOption('secret-garden');
+  await page.getByRole('button', { name: /Pass & play/ }).click();
+  await page.getByRole('button', { name: 'Close dialog' }).click();
+  await page.reload();
+  await page.getByRole('button', { name: /New game/ }).click();
+  await expect(page.getByRole('button', { name: /Pass & play/ })).toHaveClass(/chosen/);
+  await expect(page.getByLabel('White player’s drawback')).toHaveValue('random-easy');
+  await expect(page.getByLabel('Black player’s drawback')).toHaveValue('secret-garden');
+  await page.getByRole('button', { name: 'Computer', exact: true }).click();
+  await expect(page.getByLabel('Play as')).toHaveValue('b');
+  await expect(page.getByLabel('Engine thinking time')).toHaveValue('900');
+  await page.getByLabel('Play as').selectOption('w');
+  await page.getByRole('button', { name: /Let’s play/ }).click();
+  await page.getByRole('button', { name: /New game/ }).click();
+  await expect(page.getByLabel('Your drawback', { exact: true })).toHaveValue('random-easy');
+  await expect(page.getByLabel('Opponent’s drawback', { exact: true })).toHaveValue('secret-garden');
+  await expect(page.getByLabel('Engine thinking time')).toHaveValue('900');
+});
+
 test('drawback selection supports local play, cancel and returning to Random', async ({ page }) => {
   await page.goto('/');
   const before = await page.evaluate(() => localStorage.getItem('drawback-chess-v1'));
@@ -400,7 +425,7 @@ test('drawback selection supports local play, cancel and returning to Random', a
   await page.getByRole('button', { name: 'Close dialog' }).click();
   expect(await page.evaluate(() => localStorage.getItem('drawback-chess-v1'))).toBe(before);
   await page.getByRole('button', { name: /New game/ }).click();
-  await expect(page.getByLabel('Your drawback', { exact: true })).toHaveValue('random');
+  await expect(page.getByLabel('Your drawback', { exact: true })).toHaveValue('cess');
   await page.getByRole('button', { name: /Pass & play/ }).click();
   await page.getByLabel('White player’s drawback').selectOption('even');
   await page.getByRole('button', { name: /Let’s play/ }).click();

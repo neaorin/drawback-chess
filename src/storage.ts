@@ -1,8 +1,32 @@
 import { DRAWBACKS, restoreRepetitions, type Color, type Game } from './game';
+import { DIFFICULTY_LEVELS, type DrawbackChoice } from './drawback-catalogue';
 
 export type Mode = 'ai' | 'local';
 export type Saved = { version: 1; game: Game; mode: Mode; human: Color; flipped: boolean; strength: number };
 export const SAVE_KEY = 'drawback-chess-v1';
+export const NEW_GAME_KEY = 'drawback-chess-new-game-v1';
+export type NewGameChoices = {
+  mode: Mode; human: Color; strength: number; drawback: DrawbackChoice; opponentDrawback: DrawbackChoice;
+};
+export function isNewGameChoices(value: unknown): value is NewGameChoices {
+  const choice = (v: unknown) => v === 'random' || DRAWBACKS.some(d => d.id === v) ||
+    DIFFICULTY_LEVELS.some(level => level.choice === v);
+  return record(value) && (value.mode === 'ai' || value.mode === 'local') && color(value.human) &&
+    [200, 400, 900].includes(Number(value.strength)) && typeof value.strength === 'number' &&
+    choice(value.drawback) && choice(value.opponentDrawback);
+}
+export function loadNewGameChoices(): { choices: NewGameChoices | null; error: string | null } {
+  try {
+    const raw = localStorage.getItem(NEW_GAME_KEY);
+    if (!raw) return { choices: null, error: null };
+    const choices: unknown = JSON.parse(raw);
+    if (!isNewGameChoices(choices)) throw new Error('New Game choices have an unsupported format.');
+    return { choices, error: null };
+  } catch (error) {
+    console.error('Could not restore New Game choices:', error);
+    return { choices: null, error: 'Your previous New Game choices could not be restored. Default choices will be used.' };
+  }
+}
 const record = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const color = (value: unknown): value is Color => value === 'w' || value === 'b';
 const cell = (value: unknown) => Number.isInteger(value) && Number(value) >= 0 && Number(value) < 64;

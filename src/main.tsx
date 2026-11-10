@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { DRAWBACKS, colorName, drawbackDescription, drawbackMoveInfo, fogVisibility, legalMoves, newGame, other, play, positionAt, repetitionCount, square, visibleKingAttacks, type Color, type DrawbackId, type Game, type Kind, type Move, type Piece } from './game';
 import { chooseAI, resolveEngineBan, StockfishClient } from './ai';
 import { needsEngineBan, rulesFor, templateDescription } from './drawback-state';
-import { loadSaved, SAVE_KEY, type Mode, type Saved } from './storage';
+import { loadNewGameChoices, loadSaved, NEW_GAME_KEY, SAVE_KEY, type Mode, type NewGameChoices, type Saved } from './storage';
 import { DIFFICULTY_LEVELS, difficultyLevel, type DrawbackChoice } from './drawback-catalogue';
 import { randomDrawback } from './game';
 import './styles.css';
@@ -28,6 +28,7 @@ function Icon({ name }: { name: 'shield' | 'eye' | 'flip' | 'arrow' | 'book' | '
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
 const initial = loadSaved();
+const initialChoices = loadNewGameChoices();
 
 function DrawbackSelect({ id, label, value, onChange }: {
   id: string; label: string; value: DrawbackChoice; onChange: (value: DrawbackChoice) => void;
@@ -69,15 +70,27 @@ function App() {
   const [sliding, setSliding] = useState<Move | null>(null);
   const [promotion, setPromotion] = useState<Move[] | null>(null);
   const [modal, setModal] = useState<'new' | 'rules' | 'drawbacks' | null>(null);
-  const [draftMode, setDraftMode] = useState<Mode>(mode);
-  const [draftColor, setDraftColor] = useState<Color>(human);
-  const [draftStrength, setDraftStrength] = useState(strength);
-  const [draftDrawback, setDraftDrawback] = useState<DrawbackChoice>('random');
-  const [draftOpponentDrawback, setDraftOpponentDrawback] = useState<DrawbackChoice>('random');
+  const [draftMode, setDraftMode] = useState<Mode>(initialChoices.choices?.mode ?? mode);
+  const [draftColor, setDraftColor] = useState<Color>(initialChoices.choices?.human ?? human);
+  const [draftStrength, setDraftStrength] = useState(initialChoices.choices?.strength ?? strength);
+  const [draftDrawback, setDraftDrawback] = useState<DrawbackChoice>(initialChoices.choices?.drawback ?? 'random');
+  const [draftOpponentDrawback, setDraftOpponentDrawback] = useState<DrawbackChoice>(initialChoices.choices?.opponentDrawback ?? 'random');
   const [handoff, setHandoff] = useState(mode === 'local' && !game.result);
   const [busy, setBusy] = useState(false);
   const [engineStatus, setEngineStatus] = useState('Stockfish 19 · ready when you are');
-  const [error, setError] = useState(initial.error);
+  const [error, setError] = useState(initial.error ?? initialChoices.error);
+  useEffect(() => {
+    if (modal !== 'new') return;
+    try {
+      localStorage.setItem(NEW_GAME_KEY, JSON.stringify({
+        mode: draftMode, human: draftColor, strength: draftStrength,
+        drawback: draftDrawback, opponentDrawback: draftOpponentDrawback,
+      } satisfies NewGameChoices));
+    } catch (cause) {
+      console.error('Could not save New Game choices:', cause);
+      setError('Your New Game choices could not be saved. They will be remembered only while this tab stays open.');
+    }
+  }, [modal, draftMode, draftColor, draftStrength, draftDrawback, draftOpponentDrawback]);
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
@@ -326,9 +339,7 @@ function App() {
   }
   function newMatch() {
     setShowResult(false);
-    setDraftDrawback('random');
-    setDraftOpponentDrawback('random');
-    setDraftMode(mode); setDraftColor(human); setDraftStrength(strength); setModal('new');
+    setModal('new');
   }
   function boardKey(event: React.KeyboardEvent<HTMLButtonElement>, i: number) {
     const direction = flipped ? -1 : 1;
