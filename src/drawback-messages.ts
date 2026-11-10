@@ -1,5 +1,5 @@
 import { commandCaptureMoves, other, pseudoMoves, square, uci, type Color, type Game, type Kind, type Move } from './game';
-import { adjacent, advance, attacked, distance, file, king, randomNumber, row, shade, squares, value } from './drawback-helpers';
+import { adjacent, advance, attacked, distance, file, king, randomNumber, row, secretGardenSquares, shade, squares, value } from './drawback-helpers';
 import { positionalMoves } from './drawback-positional';
 import { temporalMoves } from './drawback-temporal';
 import { randomMoveInfo, ruleContext, rulesFor } from './drawback-state';
@@ -39,6 +39,8 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     return blocked.length ? `Non-${kind === 'n' ? 'knights' : 'pawns'} cannot advance beyond rank ${color === 'w' ? limit + 1 : 8 - limit}.` : null;
   };
   switch (d) {
+    case 'secret-garden':
+      return `Your secret garden is on ${secretGardenSquares(params.square).map(square).join(' and ')}.`;
     case 'alternator':
       return g.lastPawn[color] === null ? null : g.lastPawn[color] ? 'Must move a non-pawn.' : 'Must move a pawn.';
     case 'command': {

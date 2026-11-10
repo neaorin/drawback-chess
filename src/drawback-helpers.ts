@@ -2,6 +2,11 @@ import { pseudoMoves, type Color, type Game, type Kind, type Move } from './game
 
 export const row = (at: number) => Math.floor(at / 8);
 export const file = (at: number) => at % 8;
+export function secretGardenSquares(anchor: number): [number, number] {
+  // Keep old h-file garden targets in the pair without wrapping onto another rank.
+  const left = file(anchor) === 7 ? anchor - 1 : anchor;
+  return [left, left + 1];
+}
 export const shade = (at: number) => (row(at) + file(at)) % 2;
 export const adjacent = (a: number, b: number) =>
   a !== b && Math.max(Math.abs(row(a) - row(b)), Math.abs(file(a) - file(b))) === 1;

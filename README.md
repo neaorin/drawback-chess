@@ -269,6 +269,12 @@ Active Volcano selects only c4, d4, e4, f4, c5, d5, e5, or f5 in new games.
 A volcano sprite marks its square with the same reveal and handoff privacy.
 Its four orthogonal neighbors have a striped, dashed danger-zone highlight.
 Existing saved volcano targets are preserved.
+Secret Garden randomly selects two horizontally adjacent squares on rank 3 for
+White or rank 6 for Black. Flower sprites mark both squares, and the situational
+message names them. Both squares forbid your own landings; an opponent landing
+on either one loses you the game. Flowers follow the same reveal, game-over,
+and handoff privacy as other terrain. Saved garden anchors stay stable; older
+single-square gardens gain their right neighbor (left neighbor for h-file anchors).
 Bridge Over Troubled Water marks ranks 4 and 5 with blue river overlays except
 for d4, e4, d5, e5, which remain normal-looking, legal landing squares.
 These markers follow the same reveal and handoff privacy rules.
@@ -280,7 +286,8 @@ additional turn message. The overlays are hidden during local handoff.
 
 Situational messages show concise current move restrictions, active windows,
 and approaching deadlines rather than repeating the drawback definition.
-Permanent terrain and capture rules have no extra banner. Conditional
+Permanent terrain and capture rules have no extra banner, except Secret Garden's
+square-location message. Conditional
 “if able” obligations appear only when a qualifying move exists. Queen
 Disguise and The Scent of Blood provide hints for the selected piece.
 Messages disappear during slides/handoff and at game over; historical review

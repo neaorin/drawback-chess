@@ -337,7 +337,7 @@ export function restoreRepetitions(g: Game): Game {
   const white = g.drawbacks.w, black = g.drawbacks.b;
   if (!white || !black) throw new Error('Cannot reconstruct repetition without the original drawbacks.');
   let position = newGame(white, black, rulesFor(g).seed);
-  position.rules = { ...position.rules!, engineBans: { ...rulesFor(g).engineBans } };
+  position.rules = { ...position.rules!, params: rulesFor(g).params, engineBans: { ...rulesFor(g).engineBans } };
   for (const entry of g.history) {
     position = transition({ ...position, result: null }, entry.move, false);
     position.history = [...position.history, entry];
@@ -363,7 +363,7 @@ export function positionAt(g: Game, ply: number): Game {
   const white = g.drawbacks.w, black = g.drawbacks.b;
   if (!white || !black) throw new Error('Cannot reconstruct a game without its original drawbacks.');
   let position = newGame(white, black, rulesFor(g).seed);
-  position.rules = { ...position.rules!, engineBans: { ...rulesFor(g).engineBans } };
+  position.rules = { ...position.rules!, params: rulesFor(g).params, engineBans: { ...rulesFor(g).engineBans } };
   for (const entry of g.history.slice(0, ply)) {
     // Older games could continue beyond three occurrences before draws were supported.
     position = play(position.result?.winner === null ? { ...position, result: null } : position, entry.move);

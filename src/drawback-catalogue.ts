@@ -142,7 +142,7 @@ export const DRAWBACKS = [
   { id: 'savior-complex', name: 'Savior Complex', difficulty: 48, tag: 'SAVIOR COMPLEX', description: `When in check, you must move your queen (or lose)` },
   { id: 'scorched-earth', name: 'Scorched Earth', difficulty: 74, tag: 'SCORCHED EARTH', description: `You can't move to a square that you've moved from` },
   { id: 'scouting-ahead', name: 'Scouting Ahead', difficulty: 43, tag: 'SCOUTING AHEAD', description: `As long as you have a pawn, you cannot move non-pawns ahead of your most advanced pawn` },
-  { id: 'secret-garden', name: 'Secret Garden', difficulty: 23, tag: 'SECRET GARDEN', description: `You have a secret garden in front of your pawns. You can't move onto it, and if your opponent tramples it (moves onto it), you lose` },
+  { id: 'secret-garden', name: 'Secret Garden', difficulty: 23, tag: 'SECRET GARDEN', description: `You have a secret garden on two adjacent squares on your third rank (sixth rank for Black). You can't move onto either square, and if your opponent tramples either one (moves onto it), you lose` },
   { id: 'separation-anxiety', name: 'Separation Anxiety', difficulty: 16, tag: 'SEPARATION ANXIETY', description: `Your pawns that are adjacent to your king cannot make moves that leave the squares adjacent to him (your king can make moves that leave them behind)` },
   { id: 'separation-of-church-and-state', name: 'Separation of Church and State', difficulty: 11, tag: 'SEPARATION OF CHURCH AND STATE', description: `You can't move your bishops next to a king and you can't move your king next to a bishop` },
   { id: 'shadow-queen', name: 'Shadow Queen', difficulty: 12, tag: 'SHADOW QUEEN', description: `Your queen can only move to dark squares` },

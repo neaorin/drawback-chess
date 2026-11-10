@@ -271,6 +271,59 @@ test(`${drawback} sprite follows its target, flip and reload without exposing it
 });
 }
 
+test('secret garden flowers mark both squares, follow flip and reload, and respect privacy', async ({ page }) => {
+  const game = newGame('secret-garden', 'secret-garden', 42);
+  game.rules!.params.w.square = index('b3');
+  game.rules!.params.b.square = index('f6');
+  await page.addInitScript(game => {
+    if (!localStorage.getItem('garden-seeded')) {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+      localStorage.setItem('garden-seeded', 'true');
+    }
+  }, game);
+  await page.goto('/');
+  await expect(page.locator('.garden-sprite')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  const checkWhite = async () => {
+    for (const at of ['b3', 'c3']) {
+      await expect(page.locator(`[data-square="${at}"] .garden-sprite`)).toHaveCount(1);
+      await expect(page.locator(`[data-square="${at}"]`)).toHaveAttribute('aria-label', /secret garden/);
+    }
+  };
+  await checkWhite();
+  await expect(page.locator('.garden-sprite')).toHaveCount(2);
+  await expect(page.getByRole('status', { name: 'Your move restriction' })).toHaveText('Your secret garden is on b3 and c3.');
+  await page.locator('[data-square="b2"]').click();
+  await expect(page.locator('[data-square="b3"]')).not.toHaveClass(/legal-square/);
+  await page.getByRole('button', { name: /Flip board/ }).click();
+  await checkWhite();
+  await page.reload();
+  await expect(page.locator('.garden-sprite')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await checkWhite();
+  await page.locator('[data-square="a2"]').click();
+  await page.locator('[data-square="a4"]').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('.garden-sprite')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.garden-sprite')).toHaveCount(2);
+  for (const at of ['b3', 'c3']) {
+    await expect(page.locator(`[data-square="${at}"]`)).not.toHaveAttribute('aria-label', /secret garden/);
+  }
+  for (const at of ['f6', 'g6']) await expect(page.locator(`[data-square="${at}"] .garden-sprite`)).toHaveCount(1);
+  await expect(page.getByRole('status', { name: 'Your move restriction' })).toHaveText('Your secret garden is on f6 and g6.');
+  await page.getByRole('button', { name: 'Reveal White drawback', exact: true }).click();
+  await page.getByRole('button', { name: 'Reveal White’s drawback', exact: true }).click();
+  await expect(page.locator('.garden-sprite')).toHaveCount(4);
+  await checkWhite();
+  await page.getByRole('button', { name: 'Resign', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm resignation', exact: true }).click();
+  await page.getByRole('button', { name: 'Review board', exact: true }).click();
+  await expect(page.locator('.garden-sprite')).toHaveCount(4);
+});
+
 test('river markers leave the center clear and follow orientation, reload and reveal privacy', async ({ page }) => {
   const game = newGame('bridge-over-troubled-water', 'horse', 42);
   await page.addInitScript(game => {

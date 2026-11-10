@@ -1,7 +1,7 @@
 import { other, pseudoMoves, type Game, type Kind, type Move } from './game';
 import {
   adjacent, advance, attacked, defended, distance, file, king, rightward, rim, row,
-  shade, squares, value,
+  secretGardenSquares, shade, squares, value,
 } from './drawback-helpers';
 import type { RuleContext } from './drawback-types';
 
@@ -190,7 +190,7 @@ export function positionalMoves(ctx: RuleContext): Move[] {
       return every((_from, to, type) => type === 'p' || advance(to, color) <= limit);
     }
     case 'secret-garden':
-      return every((_from, to) => to !== params.square);
+      return every((_from, to) => !secretGardenSquares(params.square).includes(to));
     case 'separation-anxiety':
       return filter(m => kind(m) !== 'p' || !adjacent(m.from, ownKing) || adjacent(m.to, ownKing));
     case 'separation-of-church-and-state':

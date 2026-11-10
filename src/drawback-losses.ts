@@ -1,5 +1,5 @@
 import { other, type Color, type Game } from './game';
-import { adjacent, advance, attacked, defended, distance, file, king, rim, row, squares } from './drawback-helpers';
+import { adjacent, advance, attacked, defended, distance, file, king, rim, row, secretGardenSquares, squares } from './drawback-helpers';
 import { rulesFor } from './drawback-state';
 
 export const LOSS_IDS = [
@@ -61,7 +61,9 @@ export function drawbackLoss(g: Game, color: Color): string | null {
     case 'rook-on-the-seventh':
       lost = completed >= 15 && !ownEvents.some(e => e.kind === 'r' && 8 - row(e.to) === p.rank &&
         ownEvents.indexOf(e) < 15); break;
-    case 'secret-garden': lost = last?.color === enemy && last.to === p.square; break;
+    case 'secret-garden':
+      lost = last?.color === enemy && secretGardenSquares(p.square).some(at =>
+        last.to === at || last.castle?.rookTo === at); break;
     case 'siege':
       lost = completed >= 20 && !ownEvents.slice(0, 20).some(e => e.captured === 'r'); break;
     case 'simp': lost = squares(g, color, 'q').length === 0; break;

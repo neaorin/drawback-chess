@@ -34,7 +34,7 @@ const suppressed = [
   'no-shuffling', 'noblesse-oblige', 'octomom', 'outflanked', 'pack-mentality',
   'paranoid', 'pawn-battle', 'peons-first', 'professional-courtesy',
   'protected-pawns', 'punching-down', 'quicksand', 'reflective', 'respectful',
-  'rook-fan-club', 'royal-berth', 'scorched-earth', 'secret-garden',
+  'rook-fan-club', 'royal-berth', 'scorched-earth',
   'separation-anxiety', 'separation-of-church-and-state', 'shadow-queen',
   'sibling-rivalry', 'simp', 'snipers', 'social-distancing', 'spread-out',
   'stage-fright', 'stand-your-ground', 'stay-at-home-mom', 'stop-stalling',
