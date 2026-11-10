@@ -41,7 +41,13 @@ function DrawbackSelect({ id, label, value, onChange }: {
   const level = drawback ? difficultyLevel(drawback.difficulty) : DIFFICULTY_LEVELS.find(level => level.choice === value);
   return <>
     <label className="field-label" htmlFor={id}>{label}</label>
-    <select id={id} className="drawback-select" value={value} onChange={event => {
+    <select id={id} className="drawback-select" value={value} onKeyDown={event => {
+      if (!/^[a-z]$/i.test(event.key)) return;
+      const match = DRAWBACKS.find(d => d.name.toLocaleLowerCase().startsWith(event.key.toLocaleLowerCase()));
+      if (!match) return;
+      event.preventDefault();
+      onChange(match.id);
+    }} onChange={event => {
       const choice = event.target.value;
       if (choice === 'random') onChange(choice);
       else {

@@ -417,6 +417,24 @@ test('new game remembers all choices across cancel, reload, and starting a game'
   await expect(page.getByLabel('Engine thinking time')).toHaveValue('900');
 });
 
+test('drawback selectors jump by first letter and skip Random choices', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /New game/ }).click();
+  const white = page.getByLabel('Your drawback', { exact: true });
+  const black = page.getByLabel('Opponent’s drawback', { exact: true });
+  const first = (letter: string) => DRAWBACKS.find(d => d.name.toLowerCase().startsWith(letter))!;
+  await white.focus();
+  await page.keyboard.press('r');
+  await expect(white).toHaveValue(first('r').id);
+  expect(first('r').name).not.toMatch(/^Random/i);
+  await black.focus();
+  await page.keyboard.press('t');
+  await expect(black).toHaveValue(first('t').id);
+  await white.focus();
+  await page.keyboard.press('r');
+  await expect(white).toHaveValue(first('r').id);
+});
+
 test('drawback selection supports local play, cancel and returning to Random', async ({ page }) => {
   await page.goto('/');
   const before = await page.evaluate(() => localStorage.getItem('drawback-chess-v1'));

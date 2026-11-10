@@ -222,6 +222,9 @@ The New Game dialog remembers opponent mode, player color, engine thinking time,
 and both drawback selections (including random difficulty bands) in browser storage.
 Choices are retained even when the dialog is closed without starting a game and
 survive page reloads. Changing these choices does not change the current game.
+While a drawback selector is focused, pressing a letter jumps to the first
+individual drawback with that initial in catalogue order; random choices are
+skipped (so R selects a drawback beginning with R).
 
 There is no check, checkmate, stalemate, or fifty-move draw.
 Moving into check, adjacent kings, ignoring threats, and moving pinned pieces
