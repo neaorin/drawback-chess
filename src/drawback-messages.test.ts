@@ -147,11 +147,21 @@ describe('situational messages', () => {
     expect(drawbackMoveInfo(g)).toBe('Must keep d4 occupied for the next 1 move.');
   });
 
-  it('reports only current blocked capture types for study and pairing', () => {
+  it.each(['w', 'b'] as const)('reports researched and researching capture types for %s', color => {
+    const g = position('reconnaissance', color);
+    expect(drawbackMoveInfo(g)).toBe('Can capture none, researching none.');
+    const player = g.rules!.players[color];
+    player.studying = ['n', 'b', 'n'];
+    expect(drawbackMoveInfo(g)).toBe('Can capture none, researching knights, bishops.');
+    player.studied = ['p', 'n', 'r', 'n'];
+    player.studying = ['n', 'q'];
+    expect(drawbackMoveInfo(g)).toBe('Can capture pawns, knights, rooks, researching queens.');
+    player.studied.push('q');
+    expect(drawbackMoveInfo(g)).toBe('Can capture pawns, knights, rooks, queens, researching none.');
+  });
+
+  it('reports only current blocked capture types for pairing', () => {
     const g = position('reconnaissance', 'w', { a1: 'wr', a8: 'bn' });
-    expect(drawbackMoveInfo(g)).toBe('Cannot capture knights yet.');
-    g.rules!.players.w.studied.push('n');
-    expect(drawbackMoveInfo(g)).toBeNull();
     g.drawbacks.w = 'now-kiss';
     expect(drawbackMoveInfo(g)).toBe('Cannot capture with rooks.');
     g.rules!.players.w.kissed.push('r');
