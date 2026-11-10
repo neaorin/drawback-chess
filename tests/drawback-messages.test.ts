@@ -38,12 +38,22 @@ const suppressed = [
   'separation-anxiety', 'separation-of-church-and-state', 'shadow-queen',
   'sibling-rivalry', 'simp', 'snipers', 'social-distancing', 'spread-out',
   'stage-fright', 'stand-your-ground', 'stay-at-home-mom', 'stop-stalling',
-  'superstitious', 'three-check', 'thunderdome', 'torchlight', 'tower-defense',
+  'superstitious', 'thunderdome', 'torchlight', 'tower-defense',
   'trophy-wife', 'true-gentleman', 'true-love', 'unlucky', 'unrequited-love',
   'vegan', 'whites-of-their-eyes',
 ] as const satisfies readonly DrawbackId[];
 
 describe('situational messages', () => {
+  it.each(['w', 'b'] as const)('shows checks left for Three Check for %s', color => {
+    const g = position('three-check', color);
+    for (const checks of [0, 1, 2]) {
+      g.rules!.players[color].checks = checks;
+      expect(drawbackMoveInfo(g)).toBe(`Checks left: ${3 - checks}.`);
+    }
+    g.rules!.players[color === 'w' ? 'b' : 'w'].checks = 2;
+    g.rules!.players[color].checks = 0;
+    expect(drawbackMoveInfo(g)).toBe('Checks left: 3.');
+  });
   it('suppresses static and loss-condition messages even when pieces and captures exist', () => {
     expect(suppressed.length).toBeGreaterThan(80);
     for (const id of suppressed) {

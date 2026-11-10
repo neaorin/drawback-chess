@@ -39,6 +39,8 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     return blocked.length ? `Non-${kind === 'n' ? 'knights' : 'pawns'} cannot advance beyond rank ${color === 'w' ? limit + 1 : 8 - limit}.` : null;
   };
   switch (d) {
+    case 'three-check':
+      return `Checks left: ${Math.max(0, 3 - player.checks)}.`;
     case 'secret-garden':
       return `Your secret garden is on ${secretGardenSquares(params.square).map(square).join(' and ')}.`;
     case 'alternator':

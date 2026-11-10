@@ -305,6 +305,8 @@ Reconnaissance lists all researched capture types and currently researching type
 excluding types already researched: “Can capture pawns, knights, researching queens.”
 Unspooling always shows its remaining movement budget on the player's turn:
 “Distance left: 100.” The budget uses only that player's accumulated move distances.
+Three Check shows “Checks left: 3.” on the player's turn, counting down with
+each received check; receiving the third check loses the game.
 Conditional “if able” obligations appear only when a qualifying move exists. Queen
 Disguise and The Scent of Blood provide hints for the selected piece.
 Messages disappear during slides/handoff and at game over; historical review
