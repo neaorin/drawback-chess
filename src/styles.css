@@ -84,7 +84,9 @@ nav button svg { width: 15px; }
 .nav-active { height: 100%; display: flex; align-items: center; position: relative; font-weight: 650; color: var(--cp-accent); }
 .nav-active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--cp-accent); }
 .count-pill { border: 1px solid var(--cp-border); border-radius: 5px; padding: 1px 5px; font-size: 10px; }
-.theme-toggle { margin-left: auto; padding: 8px; flex-shrink: 0; border-radius: 20px; }
+.header-settings { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.sound-toggle { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 20px; color: var(--cp-text-soft); }
+.theme-toggle { padding: 8px; flex-shrink: 0; border-radius: 20px; }
 .theme-switch-track { display: block; width: 40px; height: 24px; padding: 3px; border-radius: 12px; background: var(--cp-border-strong); }
 .theme-switch-thumb { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--cp-surface); transition: transform .15s; }
 .theme-toggle[aria-checked="true"] .theme-switch-track { background: var(--cp-accent); }

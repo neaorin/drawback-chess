@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { DRAWBACKS, colorName, drawbackDescription, drawbackMoveInfo, fogVisibility, legalMoves, newGame, other, play, positionAt, repetitionCount, square, visibleKingAttacks, type Color, type DrawbackId, type Game, type Kind, type Move, type Piece } from './game';
 import { chooseAI, resolveEngineBan, StockfishClient } from './ai';
 import { needsEngineBan, rulesFor, templateDescription } from './drawback-state';
-import { loadNewGameChoices, loadSaved, NEW_GAME_KEY, SAVE_KEY, type Mode, type NewGameChoices, type Saved } from './storage';
+import { loadNewGameChoices, loadSaved, loadSoundPreference, NEW_GAME_KEY, SAVE_KEY, SOUND_KEY, type Mode, type NewGameChoices, type Saved } from './storage';
+import { MoveSound } from './sound';
 import { DIFFICULTY_LEVELS, difficultyLevel, type DrawbackChoice } from './drawback-catalogue';
 import { randomDrawback } from './game';
 import './styles.css';
@@ -15,7 +16,7 @@ function Glyph({ piece }: { piece: Piece }) {
     src={`${import.meta.env.BASE_URL}pieces/cburnett/${piece.color}${piece.kind.toUpperCase()}.svg`}
     className={`piece ${piece.color === 'w' ? 'white-piece' : 'black-piece'}`} />;
 }
-function Icon({ name }: { name: 'shield' | 'eye' | 'flip' | 'arrow' | 'book' | 'cpu' | 'close' }) {
+function Icon({ name }: { name: 'shield' | 'eye' | 'flip' | 'arrow' | 'book' | 'cpu' | 'close' | 'sound' | 'muted' }) {
   const paths = {
     shield: <><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6Z" /><path d="m9 12 2 2 4-4" /></>,
     eye: <><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
@@ -24,11 +25,14 @@ function Icon({ name }: { name: 'shield' | 'eye' | 'flip' | 'arrow' | 'book' | '
     book: <><path d="M12 5v16M12 5C8 2 3 3 3 3v15s5-1 9 3c4-4 9-3 9-3V3s-5-1-9 2Z" /></>,
     cpu: <><rect x="6" y="6" width="12" height="12" rx="2" /><path d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4" /><rect x="10" y="10" width="4" height="4" /></>,
     close: <path d="m6 6 12 12M6 18 18 6" />,
+    sound: <><path d="M11 4 5 9H2v6h3l6 5Z" /><path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" /></>,
+    muted: <><path d="M11 4 5 9H2v6h3l6 5Z" /><path d="m16 9 6 6m0-6-6 6" /></>,
   };
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
 const initial = loadSaved();
 const initialChoices = loadNewGameChoices();
+const initialSound = loadSoundPreference();
 
 function DrawbackSelect({ id, label, value, onChange }: {
   id: string; label: string; value: DrawbackChoice; onChange: (value: DrawbackChoice) => void;
@@ -78,7 +82,47 @@ function App() {
   const [handoff, setHandoff] = useState(mode === 'local' && !game.result);
   const [busy, setBusy] = useState(false);
   const [engineStatus, setEngineStatus] = useState('Stockfish 19 · ready when you are');
-  const [error, setError] = useState(initial.error ?? initialChoices.error);
+  const [error, setError] = useState(initial.error ?? initialChoices.error ?? initialSound.error);
+  const [soundEnabled, setSoundEnabled] = useState(initialSound.enabled);
+  const sound = useRef<MoveSound | null>(null);
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
+  useEffect(() => {
+    const player = new MoveSound();
+    sound.current = player;
+    const unlock = () => {
+      if (!soundEnabledRef.current) return;
+      void player.unlock().catch(cause => {
+        console.error('Could not enable move sounds:', cause);
+        setError('Move sounds are unavailable in this browser.');
+      });
+    };
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      sound.current = null;
+      void player.dispose().catch(cause => console.error('Could not close move audio:', cause));
+    };
+  }, []);
+  useEffect(() => {
+    if (sliding && soundEnabledRef.current) sound.current?.play();
+  }, [sliding]);
+  function toggleSound() {
+    const enabled = !soundEnabled;
+    setSoundEnabled(enabled);
+    if (enabled) void sound.current?.unlock().catch(cause => {
+      console.error('Could not enable move sounds:', cause);
+      setError('Move sounds are unavailable in this browser.');
+    });
+    try {
+      localStorage.setItem(SOUND_KEY, enabled ? 'on' : 'off');
+    } catch (cause) {
+      console.error('Could not save sound preference:', cause);
+      setError('Your sound preference could not be saved in this browser.');
+    }
+  }
   useEffect(() => {
     if (modal !== 'new') return;
     try {
@@ -372,7 +416,7 @@ function App() {
   return <div className="app-shell">
     <header className="site-header"><a className="brand" href="./" aria-label="Drawback Chess home"><span className="brand-mark">♞</span><span>drawback<span className="brand-light">chess</span><span className="brand-dot">.</span></span></a>
       <nav aria-label="Main navigation"><span className="nav-active">Play</span><button onClick={() => setModal('drawbacks')}>The drawbacks <span className="count-pill">{DRAWBACKS.length}</span></button><button onClick={() => setModal('rules')}>How to play <Icon name="book" /></button></nav>
-      <button className="theme-toggle" role="switch" aria-checked={theme === 'dark'} aria-label="Dark theme" title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} onClick={toggleTheme}><span className="theme-switch-track" aria-hidden="true"><span className="theme-switch-thumb" /></span></button>
+      <div className="header-settings"><button className="sound-toggle" aria-label="Move sounds" aria-pressed={soundEnabled} title={soundEnabled ? 'Mute move sounds' : 'Enable move sounds'} onClick={toggleSound}><Icon name={soundEnabled ? 'sound' : 'muted'} /></button><button className="theme-toggle" role="switch" aria-checked={theme === 'dark'} aria-label="Dark theme" title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} onClick={toggleTheme}><span className="theme-switch-track" aria-hidden="true"><span className="theme-switch-thumb" /></span></button></div>
     </header>
     <main>
       <div className="game-actions">{!game.result && <button className="outline-button" disabled={handoff || !!sliding} onClick={() => setConfirmResign(viewer)}>Resign</button>}<button className="primary-button new-game" onClick={newMatch}>New game <span>+</span></button></div>

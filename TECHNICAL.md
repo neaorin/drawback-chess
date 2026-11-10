@@ -6,6 +6,15 @@ Implementation details, gameplay conventions, testing, licensing, and deployment
 
 ## Interface and behavior
 
+Live human and computer moves play a short synthesized piece-move sound using
+Web Audio, including captures, promotions, and castling (one sound per move).
+The sound combines a noise impact with rapidly damped, inharmonic resonances
+for a wooden clack; its short audio buffer is generated once and reused.
+The icon-only speaker button beside the header theme switch toggles sounds.
+Sound is enabled by default and the preference persists in browser storage.
+Browsers require a user interaction to unlock audio; history review, reloading,
+and starting a game do not play move sounds. No external audio assets are loaded.
+
 Chess with a secret disadvantage. Inspired by [Drawback Chess](https://www.drawbackchess.com/),
 each player receives a random **drawback**: an extra rule that changes how they
 can play. You might only be allowed to capture on even-numbered turns, have to

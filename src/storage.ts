@@ -4,6 +4,15 @@ import { DIFFICULTY_LEVELS, type DrawbackChoice } from './drawback-catalogue';
 export type Mode = 'ai' | 'local';
 export type Saved = { version: 1; game: Game; mode: Mode; human: Color; flipped: boolean; strength: number };
 export const SAVE_KEY = 'drawback-chess-v1';
+export const SOUND_KEY = 'drawback-chess-sound';
+export function loadSoundPreference(): { enabled: boolean; error: string | null } {
+  try {
+    return { enabled: localStorage.getItem(SOUND_KEY) !== 'off', error: null };
+  } catch (error) {
+    console.error('Could not restore sound preference:', error);
+    return { enabled: false, error: 'Your sound preference could not be restored.' };
+  }
+}
 export const NEW_GAME_KEY = 'drawback-chess-new-game-v1';
 export type NewGameChoices = {
   mode: Mode; human: Color; strength: number; drawback: DrawbackChoice; opponentDrawback: DrawbackChoice;
