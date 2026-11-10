@@ -26,6 +26,8 @@ opponent with no legal moves to win. Threefold repetition ends in a draw.
 | Secret Garden | Protect two secret squares: you cannot land on them, and an opponent landing there loses you the game. |
 | Fog of War | Only your pieces and the squares they can reach are visible. |
 
+See [all 181 drawbacks](DRAWBACKS.md) for the full list.
+
 ## Install and run
 
 Requires **Node.js 22.12+** (or a newer supported release).
