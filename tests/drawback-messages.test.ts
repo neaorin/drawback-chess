@@ -98,7 +98,7 @@ describe('situational messages', () => {
       h8: color === 'w' ? 'bk' : 'wk',
     });
     const enemy = color === 'w' ? 'b' : 'w';
-    expect(drawbackMoveInfo(g)).toBe('Can capture with none.');
+    expect(drawbackMoveInfo(g)).toBe('Cannot capture.');
     g.rules!.events.push(
       event(enemy, { kind: 'r', capture: index('a4') }),
       event(color, { kind: 'p', capture: index('b3') }),
