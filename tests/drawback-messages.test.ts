@@ -44,6 +44,22 @@ const suppressed = [
 ] as const satisfies readonly DrawbackId[];
 
 describe('situational messages', () => {
+  it.each(['w', 'b'] as const)('shows Theocracy only when it blocks a capture for %s', color => {
+    const g = position('theocracy', color, {
+      a1: color === 'w' ? 'wr' : 'br', a8: color === 'w' ? 'bp' : 'wp',
+    });
+    g.rules!.params[color].parity = 1;
+    expect(drawbackMoveInfo(g)).toBe('Can only capture with bishops.');
+    g.turns[color] = 1;
+    expect(drawbackMoveInfo(g)).toBeNull();
+    g.turns[color] = 0;
+    g.board[index('a8')] = null;
+    if (color === 'b') {
+      g.board[index('h1')] = null;
+      g.board[index('h2')] = { color: 'w', kind: 'k' };
+    }
+    expect(drawbackMoveInfo(g)).toBeNull();
+  });
   it.each(['w', 'b'] as const)('lists Velociraptor capture types from the last three enemy moves for %s', color => {
     const g = position('velociraptor', color);
     const opponent = color === 'w' ? 'b' : 'w';

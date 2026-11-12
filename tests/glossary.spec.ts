@@ -31,6 +31,67 @@ test('bridge knights highlight and capture across dry endpoints', async ({ page 
   await expect(page.locator('[data-square="d4"] img')).toHaveAttribute('src', /wN\.svg$/);
 });
 
+test('Jumpy highlights own attacked pieces and hides them during handoff and the opponent turn', async ({ page }) => {
+  const game = newGame('jumpy', 'horse', 42);
+  game.board.fill(null);
+  for (const [at, piece] of Object.entries({
+    h1: { color: 'w', kind: 'k' }, h8: { color: 'b', kind: 'k' },
+    d4: { color: 'w', kind: 'r' }, c3: { color: 'w', kind: 'p' },
+    a2: { color: 'w', kind: 'p' }, d5: { color: 'b', kind: 'r' }, b4: { color: 'b', kind: 'b' },
+  } as const)) game.board[index(at)] = piece;
+  game.rights = { w: { king: false, queen: false }, b: { king: false, queen: false } };
+  game.rules = initialRules(game, 42);
+  await page.addInitScript(game => {
+    if (!localStorage.getItem('jumpy-seeded')) {
+      localStorage.setItem('drawback-chess-v1', JSON.stringify({
+        version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+      }));
+      localStorage.setItem('jumpy-seeded', 'true');
+    }
+  }, game);
+  await page.goto('/');
+  await expect(page.locator('.jumpy-attacked')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.jumpy-attacked')).toHaveCount(2);
+  for (const at of ['d4', 'c3']) {
+    await expect(page.locator(`[data-square="${at}"]`).getByRole('img', { name: 'Attacked piece' })).toBeVisible();
+  }
+  await expect(page.locator('[data-square="a2"] .jumpy-attacked')).toHaveCount(0);
+  await expect(page.locator('[data-square="d5"] .jumpy-attacked')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Flip board', exact: true }).click();
+  await expect(page.locator('[data-square="d4"] .jumpy-attacked')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('.jumpy-attacked')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.jumpy-attacked')).toHaveCount(2);
+  await page.locator('[data-square="d4"]').click();
+  await page.locator('[data-square="d5"]').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('.jumpy-attacked')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('.jumpy-attacked')).toHaveCount(0);
+});
+
+test('Jumpy highlights attacked black pieces even when they cannot move', async ({ page }) => {
+  const game = newGame('horse', 'jumpy', 42);
+  game.board.fill(null);
+  for (const [at, piece] of Object.entries({
+    h1: { color: 'w', kind: 'k' }, h8: { color: 'b', kind: 'k' },
+    b2: { color: 'w', kind: 'r' }, a2: { color: 'b', kind: 'p' }, a1: { color: 'b', kind: 'n' },
+  } as const)) game.board[index(at)] = piece;
+  game.turn = 'b';
+  game.rights = { w: { king: false, queen: false }, b: { king: false, queen: false } };
+  game.rules = initialRules(game, 42);
+  expect(legalMoves(game).some(move => move.from === index('a2'))).toBe(false);
+  await page.addInitScript(game => localStorage.setItem('drawback-chess-v1', JSON.stringify({
+    version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+  })), game);
+  await page.goto('/');
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('[data-square="a2"] .jumpy-attacked')).toBeVisible();
+  await expect(page.locator('[data-square="b2"] .jumpy-attacked')).toHaveCount(0);
+});
+
 for (const drawback of ['ooh-shiny', 'simplifier', 'escort-mission', 'evil-twin'] as const) {
   test(`${drawback} highlights mandatory victims without selecting a piece`, async ({ page }) => {
     const game = newGame(drawback, 'horse', 42);

@@ -331,6 +331,9 @@ uses the reviewed position's rule state.
 Ooh Shiny, Simplifier, Escort Mission, and Evil Twin mark mandatory capture targets with a red dashed
 highlight before selecting a piece. Markers hide when no preferred capture
 exists, during handoff/slides, and on the opponent's turn.
+Jumpy highlights all of the current player's attacked pieces, including those
+that cannot move, using the same geometric attack definition as its rule.
+These markers are private and hidden during handoff, slides, and game over.
 
 Where the short glossary wording leaves details unspecified, this implementation
 uses these conventions:

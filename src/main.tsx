@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { DRAWBACKS, colorName, drawbackDescription, drawbackMoveInfo, fogVisibility, legalMoves, newGame, other, play, positionAt, repetitionCount, square, visibleKingAttacks, type Color, type DrawbackId, type Game, type Kind, type Move, type Piece } from './game';
+import { DRAWBACKS, colorName, drawbackDescription, drawbackMoveInfo, fogVisibility, legalMoves, newGame, other, play, positionAt, pseudoMoves, repetitionCount, square, visibleKingAttacks, type Color, type DrawbackId, type Game, type Kind, type Move, type Piece } from './game';
 import { chooseAI, resolveEngineBan, StockfishClient } from './ai';
 import { needsEngineBan, rulesFor, templateDescription } from './drawback-state';
 import { loadNewGameChoices, loadSaved, loadSoundPreference, NEW_GAME_KEY, SAVE_KEY, SOUND_KEY, type Mode, type NewGameChoices, type Saved } from './storage';
@@ -235,6 +235,14 @@ function App() {
       !['ooh-shiny', 'simplifier', 'escort-mission', 'evil-twin'].includes(displayedGame.drawbacks[viewer] ?? '') ? [] :
       legalMoves(displayedGame).filter(move => preferredCapture(displayedGame, move)).map(move => move.capture!),
   );
+  const jumpyAttacked = new Set<number>();
+  if (!game.result && !handoff && !sliding && displayedGame.turn === viewer && displayedGame.drawbacks[viewer] === 'jumpy') {
+    for (const move of pseudoMoves(displayedGame, other(viewer))) {
+      if (move.capture !== undefined && displayedGame.board[move.capture]?.color === viewer && visible.has(move.capture)) {
+        jumpyAttacked.add(move.capture);
+      }
+    }
+  }
   const threatenedKings = visibleKingAttacks(visibilityGame, viewer);
   const targets = selected === null || reviewPosition ? [] : moves.filter(m => m.from === selected);
   const ownDrawback = DRAWBACKS.find(d => d.id === game.drawbacks[viewer])!;
@@ -464,6 +472,7 @@ function App() {
                   {!seen && <span aria-hidden="true" className="fog-effect" />}
                   {unluckyForbidden.has(i) && <span className="unlucky-forbidden" role="img" aria-label="Forbidden destination this turn" />}
                   {seen && mandatoryCaptures.has(i) && <span className="mandatory-capture" role="img" aria-label="Mandatory capture target" />}
+                  {jumpyAttacked.has(i) && <span className="jumpy-attacked" role="img" aria-label="Attacked piece" />}
                   {river && <span className="river-overlay" aria-hidden="true" />}
                   {thunderdome && <span className="thunderdome-overlay" aria-hidden="true" />}
                   {volcanoAdjacent && <span className="volcano-danger" aria-hidden="true" />}
