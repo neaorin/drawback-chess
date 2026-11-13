@@ -159,6 +159,20 @@ describe('drawback loss conditions', () => {
 });
 
 describe('persistent rule state', () => {
+  it.each(['w', 'b'] as const)('selects Comfort Zone targets only on the three assigned ranks for %s', color => {
+    const seen = new Set<number>();
+    const ranks = color === 'w' ? [4, 5, 6] : [5, 4, 3];
+    const allowed = ranks.flatMap(rank => [...'abcdefgh'].map(file => index(`${file}${rank}`)));
+    for (let seed = 0; seed < 256; seed++) {
+      const g = newGame('comfort-zone', 'comfort-zone', seed);
+      const target = rulesFor(g).params[color].square;
+      expect(allowed).toContain(target);
+      expect(rulesFor(newGame('comfort-zone', 'comfort-zone', seed)).params[color].square).toBe(target);
+      seen.add(target);
+    }
+    expect(seen.size).toBe(24);
+  });
+
   it.each(['w', 'b'] as const)('selects Expedition targets only on the two advanced ranks for %s', color => {
     const seen = new Set<number>();
     const ranks = color === 'w' ? [6, 7] : [3, 2];
