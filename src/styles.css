@@ -136,6 +136,7 @@ main { margin: 0 auto; }
 .square { min-width: 0; padding: 0; aspect-ratio: 1; position: relative; display: grid; place-items: center; border-radius: 0; user-select: none; }
 .board-piece { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .unlucky-forbidden { position: absolute; inset: 0; background: var(--cp-danger); opacity: .22; pointer-events: none; }
+.superstitious-forbidden { position: absolute; inset: 0; background: var(--cp-danger); opacity: .22; pointer-events: none; }
 .jumpy-attacked { position: absolute; inset: 5%; border: 3px solid var(--cp-danger); border-radius: 12%; background: color-mix(in srgb, var(--cp-danger) 18%, transparent); z-index: 2; pointer-events: none; }
 .thunderdome-overlay { position: absolute; inset: 0; background: var(--cp-danger); opacity: .18; pointer-events: none; }
 .river-overlay { position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 10px, var(--cp-link) 10px 12px), color-mix(in srgb, var(--cp-link) 55%, transparent); opacity: .65; pointer-events: none; }

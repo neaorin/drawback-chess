@@ -72,6 +72,33 @@ test('Jumpy highlights own attacked pieces and hides them during handoff and the
   await expect(page.locator('.jumpy-attacked')).toHaveCount(0);
 });
 
+test('Superstitious highlights destinations the opponent has captured on', async ({ page }) => {
+  const game = newGame('superstitious', 'horse', 42);
+  game.board.fill(null);
+  for (const [at, piece] of Object.entries({
+    h1: { color: 'w', kind: 'k' }, h8: { color: 'b', kind: 'k' },
+    a4: { color: 'w', kind: 'r' },
+  } as const)) game.board[index(at)] = piece;
+  game.rights = { w: { king: false, queen: false }, b: { king: false, queen: false } };
+  game.rules = initialRules(game, 42);
+  expect(legalMoves(game).some(move => move.from === index('a4') && move.to === index('d4'))).toBe(true);
+  game.rules.events.push({
+    color: 'b', kind: 'p', pieceId: 99, from: index('d5'), to: index('d4'),
+    capture: index('d4'), captured: 'p',
+  });
+  expect(legalMoves(game).some(move => move.from === index('a4') && move.to === index('d4'))).toBe(false);
+  await page.addInitScript(game => localStorage.setItem('drawback-chess-v1', JSON.stringify({
+    version: 1, game, mode: 'local', human: 'w', flipped: false, strength: 200,
+  })), game);
+  await page.goto('/');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('drawback-chess-v1')!).game.rules.events)).toHaveLength(1);
+  await expect(page.locator('.superstitious-forbidden')).toHaveCount(0);
+  await page.getByRole('button', { name: /I’m the .* player/ }).click();
+  await expect(page.locator('[data-square="d4"] .superstitious-forbidden')).toBeVisible();
+  await expect(page.locator('[data-square="d4"]')).toHaveAttribute('aria-label', /forbidden by Superstitious/);
+  await expect(page.locator('.superstitious-forbidden')).toHaveCount(1);
+});
+
 test('Jumpy highlights attacked black pieces even when they cannot move', async ({ page }) => {
   const game = newGame('horse', 'jumpy', 42);
   game.board.fill(null);

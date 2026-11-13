@@ -243,6 +243,13 @@ function App() {
       }
     }
   }
+  const superstitiousForbidden = new Set<number>();
+  if (!game.result && !handoff && !sliding && displayedGame.turn === viewer &&
+      displayedGame.drawbacks[viewer] === 'superstitious') {
+    for (const event of rulesFor(displayedGame).events) {
+      if (event.color !== viewer && event.capture !== undefined) superstitiousForbidden.add(event.to);
+    }
+  }
   const threatenedKings = visibleKingAttacks(visibilityGame, viewer);
   const targets = selected === null || reviewPosition ? [] : moves.filter(m => m.from === selected);
   const ownDrawback = DRAWBACKS.find(d => d.id === game.drawbacks[viewer])!;
@@ -461,7 +468,7 @@ function App() {
                   '--slide-x': `${(slideFrom % 8 - i % 8) * (flipped ? -100 : 100)}%`,
                   '--slide-y': `${(Math.floor(slideFrom / 8) - Math.floor(i / 8)) * (flipped ? -100 : 100)}%`,
                 } as React.CSSProperties;
-                return <button key={i} data-square={square(i)} aria-label={`${square(i)}${unknown ? ' occupied by an unknown enemy piece; pawn blocked' : !seen ? ' fog of war' : p ? ` ${colorName(p.color)} ${names[p.kind]}` : ' empty'}${river ? ' river' : ''}${sun ? ' sun target' : ''}${garden ? ' secret garden' : ''}${thunderdome ? ' thunderdome' : ''}${volcano ? ' volcano' : ''}${volcanoAdjacent ? ' volcano danger zone' : ''}${seen && threatenedKings.has(i) ? ' under attack' : ''}${target ? ' legal destination' : ''}`}
+                return <button key={i} data-square={square(i)} aria-label={`${square(i)}${unknown ? ' occupied by an unknown enemy piece; pawn blocked' : !seen ? ' fog of war' : p ? ` ${colorName(p.color)} ${names[p.kind]}` : ' empty'}${river ? ' river' : ''}${sun ? ' sun target' : ''}${garden ? ' secret garden' : ''}${thunderdome ? ' thunderdome' : ''}${volcano ? ' volcano' : ''}${volcanoAdjacent ? ' volcano danger zone' : ''}${superstitiousForbidden.has(i) ? ' forbidden by Superstitious' : ''}${seen && threatenedKings.has(i) ? ' under attack' : ''}${target ? ' legal destination' : ''}`}
                   aria-pressed={seen && selected === i} className={`square ${dark ? 'dark-square' : 'light-square'} ${!seen && !unknown ? 'fog-square' : ''} ${unknown ? 'unknown-square' : ''} ${seen && selected === i ? 'selected-square' : ''} ${isLast ? 'last-square' : ''} ${target ? 'legal-square' : ''} ${slideFrom !== null ? 'sliding-square' : ''}`}
                   onClick={() => chooseSquare(i)} onKeyDown={e => boardKey(e, i)} draggable={active && p?.color === game.turn}
                   onDragStart={e => { if (!active || p?.color !== game.turn) { e.preventDefault(); return; } dragging.current = i; setSelected(i); e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; }}
@@ -471,6 +478,7 @@ function App() {
                   {position % 8 === 0 && <span className="rank-label">{square(i)[1]}</span>}
                   {!seen && <span aria-hidden="true" className="fog-effect" />}
                   {unluckyForbidden.has(i) && <span className="unlucky-forbidden" role="img" aria-label="Forbidden destination this turn" />}
+                  {superstitiousForbidden.has(i) && <span className="superstitious-forbidden" role="img" aria-label="Forbidden destination from opponent capture" />}
                   {seen && mandatoryCaptures.has(i) && <span className="mandatory-capture" role="img" aria-label="Mandatory capture target" />}
                   {jumpyAttacked.has(i) && <span className="jumpy-attacked" role="img" aria-label="Attacked piece" />}
                   {river && <span className="river-overlay" aria-hidden="true" />}
