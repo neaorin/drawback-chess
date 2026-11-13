@@ -56,7 +56,7 @@ export const DRAWBACKS = [
   { id: 'even', name: 'Even Keeled', difficulty: 49, tag: 'TIMING IS EVERYTHING', description: `You can only capture on your even-numbered turns. Your first turn is turn 1.` },
   { id: 'evil-twin', name: 'Evil Twin', difficulty: 12, tag: 'EVIL TWIN', description: `If you can capture a piece with a piece of the same type, e.g. capture a knight with a knight, you must` },
   { id: 'exclusivity-clause', name: 'Exclusivity Clause', difficulty: 89, tag: 'EXCLUSIVITY CLAUSE', description: `You can't move to squares that more than one of your pieces can move to` },
-  { id: 'expedition', name: 'Expedition', difficulty: 72, tag: 'EXPEDITION', description: `On move $MOVE, you must move to $SQUARE` },
+  { id: 'expedition', name: 'Expedition', difficulty: 72, tag: 'EXPEDITION', description: `On move $MOVE, you must move to $SQUARE (on ranks 6 or 7 as White, or 3 or 2 as Black)` },
   { id: 'eye-for-an-eye', name: 'Eye for an Eye', difficulty: 60, tag: 'EYE FOR AN EYE', description: `If your opponent captures, you must capture on your next move (or lose)` },
   { id: 'eye-of-sauron', name: 'Eye of Sauron', difficulty: 29, tag: 'EYE OF SAURON', description: `As long as you have a rook, your non-pawn pieces can't move to a rank more advanced than the farthest square your rooks can see (a square they're on or can move to)` },
   { id: 'false-prophets', name: 'False Prophets', difficulty: 16, tag: 'FALSE PROPHETS', description: `Your bishops can't capture` },

@@ -159,6 +159,20 @@ describe('drawback loss conditions', () => {
 });
 
 describe('persistent rule state', () => {
+  it.each(['w', 'b'] as const)('selects Expedition targets only on the two advanced ranks for %s', color => {
+    const seen = new Set<number>();
+    const ranks = color === 'w' ? [6, 7] : [3, 2];
+    const allowed = ranks.flatMap(rank => [...'abcdefgh'].map(file => index(`${file}${rank}`)));
+    for (let seed = 0; seed < 100; seed++) {
+      const g = newGame('expedition', 'expedition', seed);
+      const target = rulesFor(g).params[color].square;
+      expect(allowed).toContain(target);
+      expect(rulesFor(newGame('expedition', 'expedition', seed)).params[color].square).toBe(target);
+      seen.add(target);
+    }
+    expect(seen.size).toBe(16);
+  });
+
   it('selects only c4-f4 and c5-f5 volcano targets for both colors', () => {
     const seen = { w: new Set<number>(), b: new Set<number>() };
     const allowed = ['c4', 'd4', 'e4', 'f4', 'c5', 'd5', 'e5', 'f5'].map(index);
