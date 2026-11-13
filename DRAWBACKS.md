@@ -34,7 +34,7 @@ and move schedules are assigned when a game starts.
 | Chivalry | You can only capture their heavies (rooks and queens) with a knight |
 | Closed Book | You lose if you ever start your turn while there's an open file (one with no pawns) |
 | Colorblind | Can't move to squares of one color, re-randomized every move |
-| Comfort Zone | If you can move to a random square, you must |
+| Comfort Zone | If you can move to a random square (on ranks 4-6 as White, or 3-5 as Black), you must |
 | Conscientious Objectors | Can't capture with pawns |
 | Control Center | Your non-capturing moves must be to the four central files |
 | Covering Fire | You can only capture a piece if you could capture it two different ways |
