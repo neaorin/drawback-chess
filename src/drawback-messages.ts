@@ -139,7 +139,7 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     case 'remorseful': return captureBlocked.length ? 'Cannot capture.' : null;
     case 'eat-your-vegetables': return captureBlocked.length ? 'Can only capture pawns.' : null;
     case 'horse-eats-first': return captureBlocked.length ? 'Can only capture with knights.' : null;
-    case 'theocracy': return captureBlocked.length ? 'Can only capture with bishops.' : null;
+    case 'theocracy': return turn % 2 === params.parity ? 'Can only capture with bishops.' : null;
     case 'leveling-up': return cannotCaptureTypes(captureBlocked, true, true);
     case 'monkey-see':
       const capturable = enemy.filter(e => e.capture !== undefined).map(e => e.kind);
