@@ -56,7 +56,7 @@ and move schedules are assigned when a game starts.
 | Even Keeled | You can only capture on your even-numbered turns. Your first turn is turn 1. |
 | Evil Twin | If you can capture a piece with a piece of the same type, e.g. capture a knight with a knight, you must |
 | Exclusivity Clause | You can't move to squares that more than one of your pieces can move to |
-| Expedition | On move N (assigned at game start), you must move to a random square |
+| Expedition | On move N (assigned at game start), you must move to a random square (on ranks 6 or 7 as White, or 3 or 2 as Black) |
 | Eye for an Eye | If your opponent captures, you must capture on your next move (or lose) |
 | Eye of Sauron | As long as you have a rook, your non-pawn pieces can't move to a rank more advanced than the farthest square your rooks can see (a square they're on or can move to) |
 | False Prophets | Your bishops can't capture |

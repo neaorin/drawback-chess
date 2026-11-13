@@ -18,6 +18,7 @@ export function initialRules(g: Game, seed: number): RuleState {
     }
     if (g.drawbacks[color] === 'secret-garden') square = (color === 'w' ? 40 : 16) + random(11) % 7;
     if (g.drawbacks[color] === 'crusade') square = [27, 28, 35, 36][random(11) % 4];
+    if (g.drawbacks[color] === 'expedition') square = (color === 'w' ? 8 : 40) + random(11) % 16;
     return {
       square, move: 6 + random(12) % 7, color: random(13) % 2, rank: 3 + random(14) % 4,
       parity: random(15) % 2, piece: (['n', 'b', 'r'] as const)[random(16) % 3],
