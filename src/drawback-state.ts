@@ -130,7 +130,7 @@ export function parameterDescription(g: Game, color: Color, description: string)
   const p = rulesFor(g).params[color];
   const sq = 'abcdefgh'[file(p.square)] + (8 - row(p.square));
   const words: Record<string, string> = {
-    SQUARE: sq, CALDERA: sq, SUN: sq, HOLY_LAND: sq,
+    SQUARE: sq, CALDERA: sq, SUN: sq, HOLY_LAND: sq, EXPEDITION_TARGET: sq,
     MOVE: String(p.move), COLOR: p.color === 0 ? 'light' : 'dark',
     RANK: String(p.rank), ROOK_TARGET: `rank ${rookSeventhRank(color)}`, PARITY: p.parity === 0 ? 'even' : 'odd',
     PIECE: { n: 'knight', b: 'bishop', r: 'rook' }[p.piece],
@@ -142,6 +142,7 @@ export function templateDescription(description: string): string {
   const words: Record<string, string> = {
     SQUARE: 'a random square', CALDERA: 'a random volcanic square', SUN: 'a random sun square',
     HOLY_LAND: 'a random central square', MOVE: 'N (assigned at game start)',
+    EXPEDITION_TARGET: 'a random square (on ranks 6 or 7 as White, or 3 or 2 as Black)',
     COLOR: 'a randomly chosen color of', ROOK_TARGET: 'rank 7 as White or rank 2 as Black',
   };
   return description

@@ -7,6 +7,17 @@ import { needsEngineBan, templateDescription } from '../src/drawback-state';
 import { DIFFICULTY_LEVELS, difficultyLevel } from '../src/drawback-catalogue';
 
 describe('complete glossary coverage', () => {
+  it('keeps Expedition rank details in the glossary but not the in-game description', () => {
+    const g = newGame('expedition', 'expedition', 42);
+    for (const color of ['w', 'b'] as const) {
+      const { move, square } = g.rules!.params[color];
+      const target = 'abcdefgh'[square % 8] + (8 - Math.floor(square / 8));
+      expect(drawbackDescription(g, color)).toBe(`On move ${move}, you must move to ${target}`);
+    }
+    const description = DRAWBACKS.find(d => d.id === 'expedition')!.description;
+    expect(templateDescription(description)).toBe('On move N (assigned at game start), you must move to a random square (on ranks 6 or 7 as White, or 3 or 2 as Black)');
+  });
+
   it('describes the rook target for the player while keeping the glossary color-neutral', () => {
     const g = newGame('rook-on-the-seventh', 'rook-on-the-seventh');
     g.rules!.params.w.rank = 2;
