@@ -1,5 +1,5 @@
 import { pseudoMoves, other, type Color, type Game, type Kind, type Move } from './game';
-import { adjacent, attacked, distance, file, king, preview, randomNumber, rightward, row, squares } from './drawback-helpers';
+import { adjacent, attacked, distance, file, king, preview, randomNumber, rightward, rookSeventhRank, row, squares } from './drawback-helpers';
 import type { PlayerMemory, RuleContext, RuleParameters, RuleState } from './drawback-types';
 
 const playerMemory = (): PlayerMemory => ({
@@ -131,7 +131,7 @@ export function parameterDescription(g: Game, color: Color, description: string)
   const words: Record<string, string> = {
     SQUARE: sq, CALDERA: sq, SUN: sq, HOLY_LAND: sq,
     MOVE: String(p.move), COLOR: p.color === 0 ? 'light' : 'dark',
-    RANK: String(p.rank), PARITY: p.parity === 0 ? 'even' : 'odd',
+    RANK: String(p.rank), ROOK_TARGET: `rank ${rookSeventhRank(color)}`, PARITY: p.parity === 0 ? 'even' : 'odd',
     PIECE: { n: 'knight', b: 'bishop', r: 'rook' }[p.piece],
   };
   return description.replace(/\$([A-Z_]+)/g, (match, key: string) => words[key] ?? match);
@@ -141,7 +141,7 @@ export function templateDescription(description: string): string {
   const words: Record<string, string> = {
     SQUARE: 'a random square', CALDERA: 'a random volcanic square', SUN: 'a random sun square',
     HOLY_LAND: 'a random central square', MOVE: 'N (assigned at game start)',
-    COLOR: 'a randomly chosen color of',
+    COLOR: 'a randomly chosen color of', ROOK_TARGET: 'rank 7 as White or rank 2 as Black',
   };
   return description
     .replace(/\$RANK rank/g, 'randomly assigned rank')

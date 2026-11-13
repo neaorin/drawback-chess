@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { DRAWBACKS, legalMoves, newGame, play, positionAt, randomDrawback, uci } from '../src/game';
+import { DRAWBACKS, drawbackDescription, legalMoves, newGame, play, positionAt, randomDrawback, uci } from '../src/game';
 import { POSITIONAL_IDS } from '../src/drawback-positional';
 import { TEMPORAL_IDS } from '../src/drawback-temporal';
 import { LOSS_IDS } from '../src/drawback-losses';
-import { needsEngineBan } from '../src/drawback-state';
+import { needsEngineBan, templateDescription } from '../src/drawback-state';
 import { DIFFICULTY_LEVELS, difficultyLevel } from '../src/drawback-catalogue';
 
 describe('complete glossary coverage', () => {
+  it('describes the rook target for the player while keeping the glossary color-neutral', () => {
+    const g = newGame('rook-on-the-seventh', 'rook-on-the-seventh');
+    g.rules!.params.w.rank = 2;
+    g.rules!.params.b.rank = 7;
+    expect(drawbackDescription(g, 'w')).toBe('By move 15, you must move one of your rooks onto rank 7');
+    expect(drawbackDescription(g, 'b')).toBe('By move 15, you must move one of your rooks onto rank 2');
+    const description = DRAWBACKS.find(d => d.id === 'rook-on-the-seventh')!.description;
+    expect(templateDescription(description)).toBe('By move 15, you must move one of your rooks onto rank 7 as White or rank 2 as Black');
+  });
   it.each(DIFFICULTY_LEVELS)('random $label draws only from that band', level => {
     for (let i = 0; i < 100; i++) {
       const id = randomDrawback(level.choice);

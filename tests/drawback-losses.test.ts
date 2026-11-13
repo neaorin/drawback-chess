@@ -17,6 +17,40 @@ function fixture(id: DrawbackId, pieces: Record<string, `${Color}${Kind}`> = {},
 }
 
 describe('drawback loss conditions', () => {
+  it.each(['w', 'b'] as const)('uses the color-relative seventh rank for %s, including old saved parameters', color => {
+    const g = fixture('rook-on-the-seventh');
+    g.drawbacks = { w: 'horse', b: 'horse', [color]: 'rook-on-the-seventh' };
+    g.rules!.params[color].rank = color === 'w' ? 2 : 7;
+    g.turns[color] = 15;
+    const target = color === 'w' ? 'a7' : 'a2';
+    const wrong = color === 'w' ? 'a2' : 'a7';
+    const enemy = color === 'w' ? 'b' : 'w';
+    const move = { color, from: index('a4'), to: index(wrong), kind: 'r' as const, pieceId: 1 };
+    g.rules!.events = [move];
+    expect(drawbackLoss(g, color)).not.toBeNull();
+    g.rules!.events.push({ ...move, color: enemy, to: index(target) });
+    expect(drawbackLoss(g, color)).not.toBeNull();
+    g.rules!.events.push({ ...move, kind: 'q', to: index(target) });
+    expect(drawbackLoss(g, color)).not.toBeNull();
+    g.rules!.events.push({ ...move, to: index(target) });
+    expect(drawbackLoss(g, color)).toBeNull();
+    g.rules!.events = Array.from({ length: 15 }, () => move);
+    g.rules!.events.push({ ...move, to: index(target) });
+    expect(drawbackLoss(g, color)).not.toBeNull();
+  });
+
+  it.each(['w', 'b'] as const)('accepts a rook reaching the correct rank exactly on move 15 for %s', color => {
+    const g = fixture('rook-on-the-seventh');
+    g.drawbacks = { w: 'horse', b: 'horse', [color]: 'rook-on-the-seventh' };
+    g.turn = color;
+    g.turns[color] = 14;
+    const from = color === 'w' ? 'a6' : 'a3';
+    const target = color === 'w' ? 'a7' : 'a2';
+    const wrong = color === 'w' ? 'b6' : 'b3';
+    g.board[index(from)] = { color, kind: 'r' };
+    expect(play(g, { from: index(from), to: index(target) }).result).toBeNull();
+    expect(play(g, { from: index(from), to: index(wrong) }).result?.reason).toContain('Rook on the Seventh');
+  });
   it.each([
     ['abstinence', { a7: 'bn', b6: 'bn' }],
     ['always-check-it-might-be-mate', { e7: 'br' }],

@@ -136,7 +136,7 @@ export const DRAWBACKS = [
   { id: 'respectful', name: 'Respectful', difficulty: 24, tag: 'RESPECTFUL', description: `You can't give check` },
   { id: 'rising-water', name: 'Rising Water', difficulty: 69, tag: 'RISING WATER', description: `Every 10 turns, the water level rises one rank. You can't move pieces that are underwater and you can't move to squares that are underwater` },
   { id: 'rook-fan-club', name: 'Rook Fan Club', difficulty: 18, tag: 'ROOK FAN CLUB', description: `You must promote to rooks. Your king and queen cannot move diagonally` },
-  { id: 'rook-on-the-seventh', name: 'Rook on the Seventh', difficulty: 49, tag: 'ROOK ON THE SEVENTH', description: `By move 15, you must move one of your rooks onto the $RANK rank` },
+  { id: 'rook-on-the-seventh', name: 'Rook on the Seventh', difficulty: 49, tag: 'ROOK ON THE SEVENTH', description: `By move 15, you must move one of your rooks onto $ROOK_TARGET` },
   { id: 'royal-berth', name: 'Royal Berth', difficulty: 23, tag: 'ROYAL BERTH', description: `You can't make moves that place a piece adjacent to your king` },
   { id: 'royal-jubilee', name: 'Royal Jubilee', difficulty: 13, tag: 'ROYAL JUBILEE', description: `Whenever you capture a non-pawn piece, you must move your king or queen on the next move` },
   { id: 'savior-complex', name: 'Savior Complex', difficulty: 48, tag: 'SAVIOR COMPLEX', description: `When in check, you must move your queen (or lose)` },

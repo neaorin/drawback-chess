@@ -1,5 +1,5 @@
 import { commandCaptureMoves, other, pseudoMoves, square, uci, type Color, type Game, type Kind, type Move } from './game';
-import { adjacent, advance, attacked, distance, file, king, randomNumber, row, secretGardenSquares, shade, squares, value } from './drawback-helpers';
+import { adjacent, advance, attacked, distance, file, king, randomNumber, rookSeventhRank, row, secretGardenSquares, shade, squares, value } from './drawback-helpers';
 import { positionalMoves } from './drawback-positional';
 import { temporalMoves } from './drawback-temporal';
 import { randomMoveInfo, ruleContext, rulesFor } from './drawback-state';
@@ -191,7 +191,7 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     }
     case 'fischer-random': return deadline(20, n => `${count(n)} left to rearrange your non-pawns.`, !player.achieved.includes('fischer-random'));
     case 'siege': return deadline(20, n => `${count(n)} left to capture an enemy rook.`, !own.some(e => e.captured === 'r'));
-    case 'rook-on-the-seventh': return deadline(15, n => `${count(n)} left to move a rook to rank ${params.rank}.`, !own.some(e => e.kind === 'r' && 8 - row(e.to) === params.rank));
+    case 'rook-on-the-seventh': return deadline(15, n => `${count(n)} left to move a rook to rank ${rookSeventhRank(color)}.`, !own.some(e => e.kind === 'r' && 8 - row(e.to) === rookSeventhRank(color)));
     case 'moving-day': return turn <= 20 ? deadline(20, n => `${count(n)} left to clear your home rank.`, squares(g, color).some(at => advance(at, color) === 0)) :
       base.some(m => advance(m.to, color) === 0) ? 'Must keep your home rank clear.' : null;
     case 'warlord': {

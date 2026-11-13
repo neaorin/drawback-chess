@@ -167,11 +167,10 @@ describe('situational messages', () => {
     const cases: [DrawbackId, number, string][] = [
       ['siege', 20, 'capture an enemy rook'],
       ['fischer-random', 20, 'rearrange your non-pawns'],
-      ['rook-on-the-seventh', 15, 'move a rook to rank 7'],
+      ['rook-on-the-seventh', 15, `move a rook to rank ${color === 'w' ? 7 : 2}`],
     ];
     for (const [id, deadline, objective] of cases) {
       const g = position(id, color);
-      g.rules!.params[color].rank = 7;
       for (let turn = 1; turn <= deadline + 1; turn++) {
         g.turns[color] = turn - 1;
         const remaining = deadline - turn + 1;
@@ -179,6 +178,18 @@ describe('situational messages', () => {
           ? `${remaining} ${remaining === 1 ? 'move' : 'moves'} left to ${objective}.` : null);
       }
     }
+  });
+
+  it.each(['w', 'b'] as const)('uses the color-relative rook target despite a different saved rank for %s', color => {
+    const g = position('rook-on-the-seventh', color);
+    g.turns[color] = 14;
+    const target = color === 'w' ? 'a7' : 'a2';
+    const wrong = color === 'w' ? 'a2' : 'a7';
+    g.rules!.params[color].rank = color === 'w' ? 2 : 7;
+    g.rules!.events.push(event(color, { kind: 'r', to: index(wrong) }));
+    expect(drawbackMoveInfo(g)).toBe(`1 move left to move a rook to rank ${color === 'w' ? 7 : 2}.`);
+    g.rules!.events.push(event(color, { kind: 'r', to: index(target) }));
+    expect(drawbackMoveInfo(g)).toBeNull();
   });
 
   it('hides deadline messages once historical objectives are achieved', () => {

@@ -136,7 +136,7 @@ and move schedules are assigned when a game starts.
 | Respectful | You can't give check |
 | Rising Water | Every 10 turns, the water level rises one rank. You can't move pieces that are underwater and you can't move to squares that are underwater |
 | Rook Fan Club | You must promote to rooks. Your king and queen cannot move diagonally |
-| Rook on the Seventh | By move 15, you must move one of your rooks onto the randomly assigned rank |
+| Rook on the Seventh | By move 15, you must move one of your rooks onto rank 7 as White or rank 2 as Black |
 | Royal Berth | You can't make moves that place a piece adjacent to your king |
 | Royal Jubilee | Whenever you capture a non-pawn piece, you must move your king or queen on the next move |
 | Savior Complex | When in check, you must move your queen (or lose) |

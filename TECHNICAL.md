@@ -287,6 +287,8 @@ is created and substituted into the player's private description. Scheduled
 windows start on a personal move from 6 through 12; square targets are in the
 middle four ranks, Crusade uses one of the center four squares, and Secret Garden
 uses two adjacent squares immediately in front of the player's starting pawns.
+Rook on the Seventh always targets rank 7 for White and rank 2 for Black, even
+in older saves whose stored rank was randomly assigned.
 Blinded by the Sun selects only d4, d5, e4, or e5 in new games. A sun sprite
 marks the target for its player, and for the opponent once revealed (or at game
 over). Local handoff hides the marker. Existing saved targets are preserved.
