@@ -155,6 +155,38 @@ describe('situational messages', () => {
     for (const [id, pieces, text] of cases) expect(drawbackMoveInfo(position(id, 'w', pieces)), id).toBe(text);
   });
 
+  it.each(['w', 'b'] as const)('counts down Bloodthirsty capture obligations for %s', color => {
+    const g = position('bloodthirsty', color);
+    const opponent = color === 'w' ? 'b' : 'w';
+    g.rules!.events = [
+      event(color),
+      event(color, { capture: index('a4') }),
+      event(color),
+      event(opponent, { capture: index('b4') }),
+    ];
+    g.turns[color] = 3;
+    expect(drawbackMoveInfo(g)).toBe('Must capture this turn or the next.');
+    g.rules!.events.push(event(color));
+    g.turns[color]++;
+    expect(drawbackMoveInfo(g)).toBe('Must capture.');
+    g.rules!.events.push(event(color, { capture: index('a5') }));
+    g.turns[color]++;
+    expect(drawbackMoveInfo(g)).toBeNull();
+  });
+
+  it('hides Bloodthirsty warnings during the opening grace period', () => {
+    const g = position('bloodthirsty');
+    expect(drawbackMoveInfo(g)).toBeNull();
+    for (let turns = 1; turns <= 2; turns++) {
+      g.rules!.events.push(event('w'));
+      g.turns.w = turns;
+      expect(drawbackMoveInfo(g)).toBeNull();
+    }
+    g.rules!.events.push(event('w'));
+    g.turns.w = 3;
+    expect(drawbackMoveInfo(g)).toBe('Must capture.');
+  });
+
   it('only shows Bongcloud while its restriction excludes a move', () => {
     const g = position('bongcloud', 'w', { a1: 'wr' });
     expect(drawbackMoveInfo(g)).toBe('Must move a pawn or king.');
