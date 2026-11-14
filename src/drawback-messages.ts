@@ -60,8 +60,8 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     case 'expedition': return turn === params.move ? `Must move to ${square(params.square)}.` : null;
     case 'barbarian-rage': return last?.capture !== undefined && temporal.some(m => m.capture !== undefined) ? 'Must capture.' : null;
     case 'bloodthirsty':
-      return turn > 3 && last && last.capture === undefined
-        ? own.length >= 2 && own.slice(-2).every(e => e.capture === undefined)
+      return turn > 4 && last && last.capture === undefined
+        ? turn > 5 && own.length >= 2 && own.slice(-2).every(e => e.capture === undefined)
           ? 'Must capture.' : 'Must capture this turn or the next.'
         : null;
     case 'eye-for-an-eye': return lastEnemy?.capture !== undefined ? 'Must capture.' : null;

@@ -18,7 +18,7 @@ and move schedules are assigned when a game starts.
 | Bipartisanship | You cannot move left twice in a row or right twice in a row |
 | Bishop Fan Club | You must promote to bishops. Your king and queen can only move diagonally |
 | Blinded by the Sun | You can't end your turn attacking a random sun square |
-| Bloodthirsty | After the first 3 turns, if you go 2 turns without capturing, you must capture on the third (or lose) |
+| Bloodthirsty | Starting with your fourth move, if you go 2 turns without capturing, you must capture on the third (or lose). Your first 3 moves do not count |
 | Boastful | You lose if you have fewer pieces than your opponent |
 | Body Snatcher | If your opponent ever captures a non-pawn piece with an equivalent piece, e.g. captures a Knight with a Knight, you lose |
 | Bongcloud | When your king is on the back rank, you can only move pawns and kings |

@@ -64,7 +64,7 @@ const scenarios: Scenario[] = [
   { id: 'barbarian-rage', good: pawnCapture, bad: quiet, setup: c => own(c, cap) },
   { id: 'battle-fatigue', good: quiet, bad: pawnCapture, setup: c => { c.state.pieces[index('a1')].fatigued = true; } },
   { id: 'bipartisanship', good: move('a1', 'a3'), bad: move('a1', 'b3'), setup: c => own(c, { from: index('a1'), to: index('b3') }) },
-  { id: 'bloodthirsty', good: pawnCapture, bad: quiet, setup: c => { c.g.turns.w = 3; own(c); own(c); } },
+  { id: 'bloodthirsty', good: pawnCapture, bad: quiet, setup: c => { c.g.turns.w = 5; for (let n = 0; n < 5; n++) own(c); } },
   { id: 'boxing-with-shadows', good: move('a1', 'a7'), bad: quiet, setup: c => enemy(c) },
   { id: 'checkers', good: pawnCapture, bad: quiet },
   { id: 'colorblind', good: move('a1', 'a3'), bad: move('a1', 'b3'), setup: c => {
@@ -203,13 +203,19 @@ describe('conditional and forced restrictions', () => {
       const c = context(id, [quiet, pawnCapture, knightMove]);
       expect(temporalMoves(c)).toEqual(c.moves);
     });
-  it('does not impose Bloodthirsty until turn four or after a recent capture', () => {
-    const c = context('bloodthirsty', [quiet, pawnCapture]);
-    own(c); own(c);
-    c.g.turns.w = 2;
+  it.each(['w', 'b'] as const)('excludes the first three moves from Bloodthirsty for %s', color => {
+    const c = context('bloodthirsty', [quiet, pawnCapture], color);
+    for (let turns = 0; turns < 5; turns++) {
+      c.g.turns[color] = turns;
+      expect(temporalMoves(finish(c))).toEqual(c.moves);
+      own(c, { color });
+    }
+    c.g.turns[color] = 5;
+    expect(temporalMoves(finish(c))).toEqual([pawnCapture]);
+    c.own[3].capture = index('a7');
     expect(temporalMoves(finish(c))).toEqual(c.moves);
-    c.g.turns.w = 3;
-    c.own[1].capture = index('a7');
+    c.own[3].capture = undefined;
+    c.own[4].capture = index('a7');
     expect(temporalMoves(finish(c))).toEqual(c.moves);
   });
   it('treats a quiet move as resetting Remorseful and Barbarian Rage', () => {

@@ -162,9 +162,10 @@ describe('situational messages', () => {
       event(color),
       event(color, { capture: index('a4') }),
       event(color),
+      event(color),
       event(opponent, { capture: index('b4') }),
     ];
-    g.turns[color] = 3;
+    g.turns[color] = 4;
     expect(drawbackMoveInfo(g)).toBe('Must capture this turn or the next.');
     g.rules!.events.push(event(color));
     g.turns[color]++;
@@ -172,18 +173,27 @@ describe('situational messages', () => {
     g.rules!.events.push(event(color, { capture: index('a5') }));
     g.turns[color]++;
     expect(drawbackMoveInfo(g)).toBeNull();
+    g.rules!.events.push(event(color));
+    g.turns[color]++;
+    expect(drawbackMoveInfo(g)).toBe('Must capture this turn or the next.');
+    g.rules!.events.push(event(color));
+    g.turns[color]++;
+    expect(drawbackMoveInfo(g)).toBe('Must capture.');
   });
 
-  it('hides Bloodthirsty warnings during the opening grace period', () => {
-    const g = position('bloodthirsty');
+  it.each(['w', 'b'] as const)('starts the Bloodthirsty countdown with move four for %s', color => {
+    const g = position('bloodthirsty', color);
     expect(drawbackMoveInfo(g)).toBeNull();
-    for (let turns = 1; turns <= 2; turns++) {
-      g.rules!.events.push(event('w'));
-      g.turns.w = turns;
+    for (let turns = 1; turns <= 3; turns++) {
+      g.rules!.events.push(event(color));
+      g.turns[color] = turns;
       expect(drawbackMoveInfo(g)).toBeNull();
     }
-    g.rules!.events.push(event('w'));
-    g.turns.w = 3;
+    g.rules!.events.push(event(color));
+    g.turns[color] = 4;
+    expect(drawbackMoveInfo(g)).toBe('Must capture this turn or the next.');
+    g.rules!.events.push(event(color));
+    g.turns[color] = 5;
     expect(drawbackMoveInfo(g)).toBe('Must capture.');
   });
 
