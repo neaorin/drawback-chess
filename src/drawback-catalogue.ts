@@ -18,7 +18,7 @@ export const DRAWBACKS = [
   { id: 'bipartisanship', name: 'Bipartisanship', difficulty: 36, tag: 'BIPARTISANSHIP', description: `You cannot move left twice in a row or right twice in a row` },
   { id: 'bishop-fan-club', name: 'Bishop Fan Club', difficulty: 43, tag: 'BISHOP FAN CLUB', description: `You must promote to bishops. Your king and queen can only move diagonally` },
   { id: 'blinded-by-the-sun', name: 'Blinded by the Sun', difficulty: 37, tag: 'BLINDED BY THE SUN', description: `You can't end your turn attacking $SUN` },
-  { id: 'bloodthirsty', name: 'Bloodthirsty', difficulty: 67, tag: 'BLOODTHIRSTY', description: `After the first 3 turns, if you go 2 turns without capturing, you must capture on the third (or lose)` },
+  { id: 'bloodthirsty', name: 'Bloodthirsty', difficulty: 67, tag: 'BLOODTHIRSTY', description: `Starting with your fourth move, if you go 2 turns without capturing, you must capture on the third (or lose). Your first 3 moves do not count` },
   { id: 'boastful', name: 'Boastful', difficulty: 52, tag: 'BOASTFUL', description: `You lose if you have fewer pieces than your opponent` },
   { id: 'body-snatcher', name: 'Body Snatcher', difficulty: 35, tag: 'BODY SNATCHER', description: `If your opponent ever captures a non-pawn piece with an equivalent piece, e.g. captures a Knight with a Knight, you lose` },
   { id: 'bongcloud', name: 'Bongcloud', difficulty: 24, tag: 'BONGCLOUD', description: `When your king is on the back rank, you can only move pawns and kings` },

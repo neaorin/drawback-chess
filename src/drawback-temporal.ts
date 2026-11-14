@@ -57,7 +57,7 @@ export function temporalMoves(ctx: RuleContext): Move[] {
     case 'bipartisanship':
       return last ? filter(m => rightward(last.from, last.to, color) * rightward(m.from, m.to, color) <= 0) : moves;
     case 'bloodthirsty':
-      return turn > 3 && own.length >= 2 && own.slice(-2).every(e => !captured(e)) ? filter(capture) : moves;
+      return turn > 5 && own.length >= 2 && own.slice(-2).every(e => !captured(e)) ? filter(capture) : moves;
     case 'boxing-with-shadows':
       return lastEnemy ? prefer(m => m.to === lastEnemy.from) : moves;
     case 'checkers':
