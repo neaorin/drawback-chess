@@ -52,3 +52,11 @@ npm run preview
 
 See the [technical documentation](TECHNICAL.md) for detailed rules, implementation,
 AI behavior, testing, licensing, and deployment instructions.
+
+## License
+
+Original project code is licensed under the [MIT License](LICENSE).
+Third-party components retain their own licenses, including the
+[Cburnett chess pieces](public/pieces/cburnett/CREDITS.md) (GPLv2+) and
+[Stockfish.js](TECHNICAL.md#how-the-ai-works) (GPL-3.0). The MIT license does
+not replace those licenses or their redistribution obligations.
