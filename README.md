@@ -8,7 +8,8 @@ you want.
 
 Play against the computer or a friend on the same device, with **181 drawbacks**
 to choose from or assign randomly. The game enforces restrictions and highlights
-legal moves when you select a piece.
+legal moves when you select a piece. With Scorched Earth, your permanently
+forbidden destinations have a light red background.
 
 There is **no check or checkmate**: capture the opposing king or leave your
 opponent with no legal moves to win. Threefold repetition ends in a draw.

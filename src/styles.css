@@ -160,6 +160,7 @@ main { margin: 0 auto; }
 }
 .light-square { background: var(--cp-board-light); color: var(--cp-board-light-label); }
 .dark-square { background: var(--cp-board-dark); color: var(--cp-board-dark-label); }
+.scorched-square { background: #f3baba; color: #6f3030; }
 .fog-square, .unknown-square { background: var(--cp-surface-soft); color: var(--cp-text-soft); }
 .fog-effect { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 20% 30%, var(--cp-border), transparent 70%), radial-gradient(ellipse at 80% 75%, var(--cp-border-strong), transparent 80%), var(--cp-surface-soft); opacity: .85; }
 .fog-square:nth-child(3n) .fog-effect { transform: rotate(180deg); }
