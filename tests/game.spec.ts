@@ -40,8 +40,15 @@ test('Scorched Earth highlights only your departed squares and follows history i
     for (const at of ['g1', 'e2']) {
       const cell = page.locator(`[data-square="${at}"]`);
       await expect(cell).toHaveAttribute('aria-label', /forbidden by Scorched Earth/);
-      await expect(cell).toHaveCSS('background-color', 'rgb(243, 186, 186)');
+      await expect(cell.locator('.scorched-forbidden')).toHaveCSS('background-color',
+        theme === 'light' ? 'rgb(220, 38, 38)' : 'rgb(248, 113, 113)');
+      await expect(cell.locator('.scorched-forbidden')).toHaveCSS('opacity', '0.22');
     }
+    const darkBackground = await page.locator('[data-square="a1"]').evaluate(el => getComputedStyle(el).backgroundColor);
+    const lightBackground = await page.locator('[data-square="a2"]').evaluate(el => getComputedStyle(el).backgroundColor);
+    expect(darkBackground).not.toBe(lightBackground);
+    await expect(page.locator('[data-square="g1"]')).toHaveCSS('background-color', darkBackground);
+    await expect(page.locator('[data-square="e2"]')).toHaveCSS('background-color', lightBackground);
     await expect(page.locator('[data-square="g8"]')).not.toHaveClass(/scorched-square/);
     await page.locator('[data-square="f3"]').click();
     await expect(page.locator('[data-square="g1"]')).not.toHaveClass(/legal-square/);

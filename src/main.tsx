@@ -484,6 +484,7 @@ function App() {
                   {!seen && <span aria-hidden="true" className="fog-effect" />}
                   {unluckyForbidden.has(i) && <span className="unlucky-forbidden" role="img" aria-label="Forbidden destination this turn" />}
                   {superstitiousForbidden.has(i) && <span className="superstitious-forbidden" role="img" aria-label="Forbidden destination from opponent capture" />}
+                  {scorchedForbidden.has(i) && <span className="scorched-forbidden" aria-hidden="true" />}
                   {seen && mandatoryCaptures.has(i) && <span className="mandatory-capture" role="img" aria-label="Mandatory capture target" />}
                   {jumpyAttacked.has(i) && <span className="jumpy-attacked" role="img" aria-label="Attacked piece" />}
                   {river && <span className="river-overlay" aria-hidden="true" />}
