@@ -138,8 +138,8 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     case 'hedonic-treadmill': return lastEnemy && blocked.length ? `Must move a piece worth at least ${value[lastEnemy.kind]}.` : null;
     case 'going-the-distance': return lastEnemy && blocked.length ? `Must move at least distance ${distance(lastEnemy.from, lastEnemy.to)}.` : null;
     case 'left-to-right': return last && file(last.to) !== (color === 'w' ? 7 : 0) ? `Must land to the right of file ${square(last.to)[0]}.` : null;
-    case 'diplomatic-immunity':
-    case 'turn-the-other-cheek': return captureBlocked.length && lastEnemy ? `Cannot capture on ${square(lastEnemy.to)}.` : null;
+    case 'diplomatic-immunity': return captureBlocked.length && lastEnemy ? `Cannot capture on ${square(lastEnemy.to)}.` : null;
+    case 'turn-the-other-cheek': return lastEnemy?.capture !== undefined ? `Cannot recapture on ${square(lastEnemy.to)}.` : null;
     case 'remorseful': return captureBlocked.length ? 'Cannot capture.' : null;
     case 'eat-your-vegetables': return captureBlocked.length ? 'Can only capture pawns.' : null;
     case 'horse-eats-first': return captureBlocked.length ? 'Can only capture with knights.' : null;

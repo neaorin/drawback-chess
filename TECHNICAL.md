@@ -45,6 +45,8 @@ board. Unusually long messages can scroll
 within their reserved area rather than shifting the board.
 If the message repeats the full rule exactly, only the description is shown.
 Empty message space remains below the description, never between it and the name.
+Turn the Other Cheek shows "Cannot recapture on xy." after an opponent captures,
+where `xy` is their destination square, even if no recapture is available.
 The board's light and dark square colors remain consistent in both UI themes.
 When a game finishes, a dismissible results dialog shows the winner, reason,
 and both players' drawbacks with difficulty levels beside their names. Review the

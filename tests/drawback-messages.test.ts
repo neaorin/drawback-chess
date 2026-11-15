@@ -44,6 +44,21 @@ const suppressed = [
 ] as const satisfies readonly DrawbackId[];
 
 describe('situational messages', () => {
+  it.each(['w', 'b'] as const)('names the forbidden recapture square after an enemy capture for %s', color => {
+    const g = position('turn-the-other-cheek', color, {
+      a1: color === 'w' ? 'wr' : 'br',
+      a8: color === 'w' ? 'br' : 'wr',
+    });
+    const opponent = color === 'w' ? 'b' : 'w';
+    expect(drawbackMoveInfo(g)).toBeNull();
+    g.rules!.events.push(event(opponent, { kind: 'r', to: index('a8'), capture: index('a8'), captured: 'p' }));
+    expect(drawbackMoveInfo(g)).toBe('Cannot recapture on a8.');
+    g.board[index('a1')] = null;
+    expect(drawbackMoveInfo(g)).toBe('Cannot recapture on a8.');
+    g.rules!.events.push(event(opponent, { kind: 'r', from: index('a8'), to: index('b8') }));
+    expect(drawbackMoveInfo(g)).toBeNull();
+  });
+
   it.each(['w', 'b'] as const)('shows Theocracy while bishop-only captures are active for %s', color => {
     const g = position('theocracy', color, {
       a1: color === 'w' ? 'wr' : 'br', a8: color === 'w' ? 'bp' : 'wp',
