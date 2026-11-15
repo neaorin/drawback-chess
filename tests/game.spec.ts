@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { DRAWBACKS, index, newGame, type Game, type Piece } from '../src/game';
+import { DRAWBACKS, index, newGame, play, type Game, type Piece } from '../src/game';
 
 const saveKey = 'drawback-chess-v1';
 test('all Cburnett pieces load locally in both themes with license attribution', async ({ page, request }) => {
@@ -27,6 +27,55 @@ async function loadPosition(page: import('@playwright/test').Page, game: Game, m
   await page.goto('/');
   if (mode === 'local') await page.getByRole('button', { name: /I’m the .* player/ }).click();
 }
+test('Scorched Earth highlights only your departed squares and follows history in both themes', async ({ page }) => {
+  let game = newGame('scorched-earth', 'scorched-earth', 42);
+  for (const [from, to] of [['g1', 'f3'], ['g8', 'f6'], ['e2', 'e4'], ['e7', 'e5']]) {
+    game = play(game, { from: index(from), to: index(to) });
+  }
+  await loadPosition(page, game);
+  for (const theme of ['light', 'dark']) {
+    await page.goto(`/?scoutTheme=${theme}`);
+    await page.getByRole('button', { name: /I’m the .* player/ }).click();
+    await expect(page.locator('.scorched-square')).toHaveCount(2);
+    for (const at of ['g1', 'e2']) {
+      const cell = page.locator(`[data-square="${at}"]`);
+      await expect(cell).toHaveAttribute('aria-label', /forbidden by Scorched Earth/);
+      await expect(cell).toHaveCSS('background-color', 'rgb(243, 186, 186)');
+    }
+    await expect(page.locator('[data-square="g8"]')).not.toHaveClass(/scorched-square/);
+    await page.locator('[data-square="f3"]').click();
+    await expect(page.locator('[data-square="g1"]')).not.toHaveClass(/legal-square/);
+    await page.locator('[data-square="f3"]').focus();
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('.scorched-square')).toHaveCount(1);
+    await expect(page.locator('[data-square="e2"]')).not.toHaveClass(/scorched-square/);
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.locator('.scorched-square')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Return to latest' }).click();
+  }
+  await page.locator('[data-square="b1"]').click();
+  await page.locator('[data-square="c3"]').click();
+  await expect(page.getByRole('heading', { name: 'Pass to Black.' })).toBeVisible();
+  await expect(page.locator('.scorched-square')).toHaveCount(0);
+  await page.getByRole('button', { name: 'I’m the black player' }).click();
+  await expect(page.locator('.scorched-square')).toHaveCount(2);
+  await expect(page.locator('[data-square="g8"]')).toHaveClass(/scorched-square/);
+  await expect(page.locator('[data-square="e7"]')).toHaveClass(/scorched-square/);
+  await expect(page.locator('[data-square="g1"]')).not.toHaveClass(/scorched-square/);
+});
+test('Scorched Earth highlights both origins after castling', async ({ page }) => {
+  let game = newGame('scorched-earth', 'horse', 42);
+  game.board[index('f1')] = null;
+  game.board[index('g1')] = null;
+  game = play(game, { from: index('e1'), to: index('g1') });
+  game = play(game, { from: index('a7'), to: index('a6') });
+  await loadPosition(page, game);
+  await expect(page.locator('.scorched-square')).toHaveCount(2);
+  for (const at of ['e1', 'h1']) await expect(page.locator(`[data-square="${at}"]`)).toHaveClass(/scorched-square/);
+  for (const at of ['f1', 'g1', 'a7']) await expect(page.locator(`[data-square="${at}"]`)).not.toHaveClass(/scorched-square/);
+});
 test('repetition notice survives reload and third occurrence shows a draw with both drawbacks', async ({ page }) => {
   const cycle = [['g1', 'f3'], ['g8', 'f6'], ['f3', 'g1'], ['f6', 'g8']];
   const game = newGame('horse', 'horse', 42);
