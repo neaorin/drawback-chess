@@ -41,6 +41,10 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
   switch (d) {
     case 'three-check':
       return `Checks left: ${Math.max(0, 3 - player.checks)}.`;
+    case 'octomom': {
+      const lost = enemy.filter(e => e.capture !== undefined).length;
+      return `You've lost ${lost} ${lost === 1 ? 'piece' : 'pieces'}.`;
+    }
     case 'secret-garden':
       return `Your secret garden is on ${secretGardenSquares(params.square).map(square).join(' and ')}.`;
     case 'alternator':

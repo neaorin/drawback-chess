@@ -31,7 +31,7 @@ const suppressed = [
   'homeland-security', 'horse', 'indecisive', 'inside-the-lines', 'ivory-tower',
   'just-passing-through', 'lame-duck', 'leaps-and-bounds', 'left-for-dead',
   'lethal-attraction', 'messy-divorce', 'modest', 'my-kingdom-for-a-horse',
-  'no-shuffling', 'noblesse-oblige', 'octomom', 'outflanked', 'pack-mentality',
+  'no-shuffling', 'noblesse-oblige', 'outflanked', 'pack-mentality',
   'paranoid', 'pawn-battle', 'peons-first', 'professional-courtesy',
   'protected-pawns', 'punching-down', 'quicksand', 'reflective', 'respectful',
   'rook-fan-club', 'royal-berth', 'scorched-earth',
@@ -44,6 +44,19 @@ const suppressed = [
 ] as const satisfies readonly DrawbackId[];
 
 describe('situational messages', () => {
+  it.each(['w', 'b'] as const)('shows how many pieces Octomom has lost for %s', color => {
+    const g = position('octomom', color);
+    const opponent = color === 'w' ? 'b' : 'w';
+    expect(drawbackMoveInfo(g)).toBe("You've lost 0 pieces.");
+    g.rules!.events.push(
+      event(color, { capture: index('a3'), captured: 'p' }),
+      event(opponent, { capture: index('a3'), captured: 'p' }),
+    );
+    expect(drawbackMoveInfo(g)).toBe("You've lost 1 piece.");
+    g.rules!.events.push(event(opponent, { capture: index('b3'), captured: 'n' }));
+    expect(drawbackMoveInfo(g)).toBe("You've lost 2 pieces.");
+  });
+
   it.each(['w', 'b'] as const)('names the forbidden recapture square after an enemy capture for %s', color => {
     const g = position('turn-the-other-cheek', color, {
       a1: color === 'w' ? 'wr' : 'br',
