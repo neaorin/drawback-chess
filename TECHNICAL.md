@@ -38,7 +38,11 @@ the available content width, including at the top of the page. Scrolling or brow
 toolbar height changes do not resize it; changing the viewport width does.
 On shorter screens, seeing the drawback card may require scrolling.
 When present, the situational move restriction appears in a compact tinted strip
-inside your drawback card, below the unchanging full rule. Mobile reserves
+inside your drawback card, below the unchanging full rule. Quicksand tints ranks
+4 and 5 light red using the same overlay as Unlucky. On your next turn after
+landing there, "xy is sinking" names each piece still able to escape before
+freezing. Captured, escaped, and already frozen pieces are not listed.
+Mobile reserves
 message space based on the rule text, with room for at least three message lines,
 even when no message is shown. Changing or hiding the message does not resize the
 board. Unusually long messages can scroll

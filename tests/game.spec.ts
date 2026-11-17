@@ -27,6 +27,66 @@ async function loadPosition(page: import('@playwright/test').Page, game: Game, m
   await page.goto('/');
   if (mode === 'local') await page.getByRole('button', { name: /I’m the .* player/ }).click();
 }
+test('Quicksand highlights exactly the middle ranks and warns while a piece can escape', async ({ page }) => {
+  await loadPosition(page, newGame('quicksand', 'horse', 42));
+  for (const theme of ['light', 'dark']) {
+    await page.goto(`/?scoutTheme=${theme}`);
+    await page.getByRole('button', { name: /I’m the .* player/ }).click();
+    const overlays = page.locator('.quicksand-overlay');
+    await expect(overlays).toHaveCount(16);
+    expect(await overlays.evaluateAll(elements =>
+      elements.map(el => el.parentElement!.getAttribute('data-square')).sort())).toEqual(
+      [...'abcdefgh'].flatMap(file => [`${file}4`, `${file}5`]).sort());
+    await expect(overlays.first()).toHaveCSS('background-color',
+      theme === 'light' ? 'rgb(220, 38, 38)' : 'rgb(248, 113, 113)');
+    await expect(overlays.first()).toHaveCSS('opacity', '0.22');
+    await expect(page.locator('[data-square="e4"]')).toHaveAttribute('aria-label', /quicksand/);
+    await expect(page.locator('.drawback-card')).not.toContainText('is sinking');
+  }
+  await page.locator('[data-square="e2"]').click();
+  await expect(page.locator('[data-square="e4"]')).toHaveClass(/legal-square/);
+  await page.locator('[data-square="e4"]').click();
+  await expect(page.getByRole('heading', { name: 'Pass to Black.' })).toBeVisible();
+  await expect(page.locator('.quicksand-overlay')).toHaveCount(0);
+  await page.getByRole('button', { name: 'I’m the black player' }).click();
+  await expect(page.locator('.quicksand-overlay')).toHaveCount(0);
+  await expect(page.locator('.drawback-card')).not.toContainText('is sinking');
+  await page.locator('[data-square="a7"]').click();
+  await page.locator('[data-square="a6"]').click();
+  await page.getByRole('button', { name: 'I’m the white player' }).click();
+  await expect(page.locator('.quicksand-overlay')).toHaveCount(16);
+  await expect(page.locator('.drawback-card')).toContainText('e4 is sinking');
+  await page.locator('[data-square="e4"]').click();
+  await page.locator('[data-square="e5"]').click();
+  await page.getByRole('button', { name: 'I’m the black player' }).click();
+  await page.locator('[data-square="a6"]').click();
+  await page.locator('[data-square="a5"]').click();
+  await page.getByRole('button', { name: 'I’m the white player' }).click();
+  await expect(page.locator('.drawback-card')).toContainText('e5 is sinking');
+  await expect(page.locator('.drawback-card')).not.toContainText('e4 is sinking');
+  await page.locator('[data-square="h2"]').click();
+  await page.locator('[data-square="h3"]').click();
+  await page.getByRole('button', { name: 'I’m the black player' }).click();
+  await page.locator('[data-square="a5"]').click();
+  await page.locator('[data-square="a4"]').click();
+  await page.getByRole('button', { name: 'I’m the white player' }).click();
+  await expect(page.locator('.drawback-card')).not.toContainText('is sinking');
+  await page.locator('[data-square="e5"]').click();
+  await expect(page.locator('.legal-square')).toHaveCount(0);
+});
+
+test('revealed opponent Quicksand remains visible after flipping the board', async ({ page }) => {
+  const game = newGame('quicksand', 'horse', 42);
+  game.turn = 'b';
+  game.revealed.w = true;
+  await loadPosition(page, game);
+  await expect(page.locator('.quicksand-overlay')).toHaveCount(16);
+  await page.getByRole('button', { name: 'Flip board' }).click();
+  await expect(page.locator('.quicksand-overlay')).toHaveCount(16);
+  await expect(page.locator('[data-square="a4"] .quicksand-overlay')).toHaveCount(1);
+  await expect(page.locator('[data-square="h5"] .quicksand-overlay')).toHaveCount(1);
+});
+
 test('Scorched Earth highlights only your departed squares and follows history in both themes', async ({ page }) => {
   let game = newGame('scorched-earth', 'scorched-earth', 42);
   for (const [from, to] of [['g1', 'f3'], ['g8', 'f6'], ['e2', 'e4'], ['e7', 'e5']]) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DRAWBACKS, drawbackMoveInfo, index, newGame, type Color, type DrawbackId, type Game, type Kind } from '../src/game';
+import { DRAWBACKS, drawbackMoveInfo, index, newGame, play, type Color, type DrawbackId, type Game, type Kind } from '../src/game';
 import { initialRules } from '../src/drawback-state';
 import type { RuleEvent } from '../src/drawback-types';
 
@@ -33,7 +33,7 @@ const suppressed = [
   'lethal-attraction', 'messy-divorce', 'modest', 'my-kingdom-for-a-horse',
   'no-shuffling', 'noblesse-oblige', 'outflanked', 'pack-mentality',
   'paranoid', 'pawn-battle', 'peons-first', 'professional-courtesy',
-  'protected-pawns', 'punching-down', 'quicksand', 'reflective', 'respectful',
+  'protected-pawns', 'punching-down', 'reflective', 'respectful',
   'rook-fan-club', 'royal-berth', 'scorched-earth',
   'separation-anxiety', 'separation-of-church-and-state', 'shadow-queen',
   'sibling-rivalry', 'simp', 'snipers', 'social-distancing', 'spread-out',
@@ -44,6 +44,30 @@ const suppressed = [
 ] as const satisfies readonly DrawbackId[];
 
 describe('situational messages', () => {
+  it.each(['w', 'b'] as const)('warns about a sinking piece until it escapes quicksand for %s', color => {
+    const from = color === 'w' ? 'd3' : 'd6';
+    const to = color === 'w' ? 'd4' : 'd5';
+    let g = position('quicksand', color, { [from]: `${color}r` });
+    const step = (from: string, to: string) => { g = play(g, { from: index(from), to: index(to) }); };
+    const opponentKing = color === 'w' ? 'h8' : 'h1';
+    const replySquare = color === 'w' ? 'g8' : 'g1';
+    expect(drawbackMoveInfo(g)).toBeNull();
+    step(from, to);
+    expect(drawbackMoveInfo(g, color)).toBeNull();
+    step(opponentKing, replySquare);
+    expect(drawbackMoveInfo(g)).toBe(`${to} is sinking`);
+    step(to, from);
+    step(replySquare, opponentKing);
+    expect(drawbackMoveInfo(g)).toBeNull();
+  });
+
+  it('lists all sinking squares, excluding captured and frozen pieces', () => {
+    const g = position('quicksand', 'w', { d4: 'wr', e5: 'wn', f4: 'wb', g5: 'bn' });
+    g.rules!.players.w.central = ['d4', 'e5', 'f4', 'g5', 'a4'].map(index);
+    g.rules!.pieces[index('f4')].frozen = true;
+    expect(drawbackMoveInfo(g)).toBe('d4 is sinking; e5 is sinking');
+  });
+
   it.each(['w', 'b'] as const)('shows how many pieces Octomom has lost for %s', color => {
     const g = position('octomom', color);
     const opponent = color === 'w' ? 'b' : 'w';

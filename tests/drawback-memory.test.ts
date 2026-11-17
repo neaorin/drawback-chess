@@ -162,10 +162,12 @@ describe('piece identity and rule lifecycle', () => {
   it('freezes a stationary quicksand piece after consecutive own end-of-turn positions', () => {
     let g = setup('quicksand', { d3: 'wr', a2: 'wp' });
     g = reply(step(g, 'd3', 'd4'));
+    expect(drawbackMoveInfo(g)).toBe('d4 is sinking');
     expect(has(g, 'd4', 'd3')).toBe(true);
     g = reply(step(g, 'a2', 'a3'));
     expect(g.rules!.pieces[index('d4')].frozen).toBe(true);
     expect(legalMoves(g).some(m => m.from === index('d4'))).toBe(false);
+    expect(drawbackMoveInfo(g)).toBeNull();
   });
 
   it('locks each disguised queen to its first movement style', () => {

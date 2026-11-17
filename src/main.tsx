@@ -227,6 +227,7 @@ function App() {
     .flatMap(color => secretGardenSquares(rulesFor(displayedGame).params[color].square)));
   const showRiver = (['w', 'b'] as const).some(color => terrainVisible(color, 'bridge-over-troubled-water'));
   const showThunderdome = (['w', 'b'] as const).some(color => terrainVisible(color, 'thunderdome'));
+  const showQuicksand = (['w', 'b'] as const).some(color => terrainVisible(color, 'quicksand'));
   const moveInfo = game.result || handoff || sliding ? null : drawbackMoveInfo(displayedGame, viewer, reviewPosition ? null : selected);
   const active = !reviewPosition && !game.result && !needsEngineBan(game) && !busy && !sliding && !handoff && (mode === 'local' || game.turn === human) && !modal;
   const moves = legalMoves(game);
@@ -460,6 +461,7 @@ function App() {
                 const sun = sunSquares.has(i);
                 const garden = gardenSquares.has(i);
                 const thunderdome = showThunderdome && thunderdomeSquare(i);
+                const quicksand = showQuicksand && (Math.floor(i / 8) === 3 || Math.floor(i / 8) === 4);
                 const river = showRiver && (Math.floor(i / 8) === 3 || Math.floor(i / 8) === 4) && i % 8 !== 3 && i % 8 !== 4;
                 const volcano = volcanoSquares.has(i);
                 const volcanoAdjacent = [...volcanoSquares].some(at =>
@@ -473,7 +475,7 @@ function App() {
                   '--slide-x': `${(slideFrom % 8 - i % 8) * (flipped ? -100 : 100)}%`,
                   '--slide-y': `${(Math.floor(slideFrom / 8) - Math.floor(i / 8)) * (flipped ? -100 : 100)}%`,
                 } as React.CSSProperties;
-                return <button key={i} data-square={square(i)} aria-label={`${square(i)}${unknown ? ' occupied by an unknown enemy piece; pawn blocked' : !seen ? ' fog of war' : p ? ` ${colorName(p.color)} ${names[p.kind]}` : ' empty'}${river ? ' river' : ''}${sun ? ' sun target' : ''}${garden ? ' secret garden' : ''}${thunderdome ? ' thunderdome' : ''}${volcano ? ' volcano' : ''}${volcanoAdjacent ? ' volcano danger zone' : ''}${superstitiousForbidden.has(i) ? ' forbidden by Superstitious' : ''}${scorchedForbidden.has(i) ? ' forbidden by Scorched Earth' : ''}${seen && threatenedKings.has(i) ? ' under attack' : ''}${target ? ' legal destination' : ''}`}
+                return <button key={i} data-square={square(i)} aria-label={`${square(i)}${unknown ? ' occupied by an unknown enemy piece; pawn blocked' : !seen ? ' fog of war' : p ? ` ${colorName(p.color)} ${names[p.kind]}` : ' empty'}${river ? ' river' : ''}${sun ? ' sun target' : ''}${garden ? ' secret garden' : ''}${thunderdome ? ' thunderdome' : ''}${quicksand ? ' quicksand' : ''}${volcano ? ' volcano' : ''}${volcanoAdjacent ? ' volcano danger zone' : ''}${superstitiousForbidden.has(i) ? ' forbidden by Superstitious' : ''}${scorchedForbidden.has(i) ? ' forbidden by Scorched Earth' : ''}${seen && threatenedKings.has(i) ? ' under attack' : ''}${target ? ' legal destination' : ''}`}
                   aria-pressed={seen && selected === i} className={`square ${dark ? 'dark-square' : 'light-square'} ${!seen && !unknown ? 'fog-square' : ''} ${unknown ? 'unknown-square' : ''} ${scorchedForbidden.has(i) ? 'scorched-square' : ''} ${seen && selected === i ? 'selected-square' : ''} ${isLast ? 'last-square' : ''} ${target ? 'legal-square' : ''} ${slideFrom !== null ? 'sliding-square' : ''}`}
                   onClick={() => chooseSquare(i)} onKeyDown={e => boardKey(e, i)} draggable={active && p?.color === game.turn}
                   onDragStart={e => { if (!active || p?.color !== game.turn) { e.preventDefault(); return; } dragging.current = i; setSelected(i); e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; }}
@@ -485,6 +487,7 @@ function App() {
                   {unluckyForbidden.has(i) && <span className="unlucky-forbidden" role="img" aria-label="Forbidden destination this turn" />}
                   {superstitiousForbidden.has(i) && <span className="superstitious-forbidden" role="img" aria-label="Forbidden destination from opponent capture" />}
                   {scorchedForbidden.has(i) && <span className="scorched-forbidden" aria-hidden="true" />}
+                  {quicksand && <span className="quicksand-overlay" aria-hidden="true" />}
                   {seen && mandatoryCaptures.has(i) && <span className="mandatory-capture" role="img" aria-label="Mandatory capture target" />}
                   {jumpyAttacked.has(i) && <span className="jumpy-attacked" role="img" aria-label="Attacked piece" />}
                   {river && <span className="river-overlay" aria-hidden="true" />}

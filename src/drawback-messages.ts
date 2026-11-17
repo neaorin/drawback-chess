@@ -47,6 +47,10 @@ export function situationalMessage(g: Game, color: Color, selected: number | nul
     }
     case 'secret-garden':
       return `Your secret garden is on ${secretGardenSquares(params.square).map(square).join(' and ')}.`;
+    case 'quicksand': {
+      const sinking = player.central.filter(at => g.board[at]?.color === color && !state.pieces[at]?.frozen);
+      return sinking.length ? sinking.map(at => `${square(at)} is sinking`).join('; ') : null;
+    }
     case 'alternator':
       return g.lastPawn[color] === null ? null : g.lastPawn[color] ? 'Must move a non-pawn.' : 'Must move a pawn.';
     case 'command': {
