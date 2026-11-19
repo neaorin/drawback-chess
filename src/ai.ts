@@ -149,7 +149,8 @@ function fogMove(g: Game): Move {
       captureScore = values[captured.kind] - risk;
     }
     const developing = piece.kind !== 'k' && !movedPieces.has(state.pieces[move.from]?.id ?? move.from);
-    const score = captureScore + (supported ? 40 : 0) + (developing ? 30 : 0) + (move.castle ? 60 : 0) -
+    const rescueBonus = !exposed && attacked(observed, move.from, enemy) ? values[piece.kind] : 0;
+    const score = captureScore + rescueBonus + (supported ? 40 : 0) + (developing ? 30 : 0) + (move.castle ? 60 : 0) -
       (!captured && exposed ? attackerValue : 0) +
       (move.promotion ? values[move.promotion] : 0) +
       (piece.kind === 'p' ? advance * 9 : 0) +

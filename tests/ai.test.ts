@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { chooseAI, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from '../src/ai';
 import { DRAWBACKS, fogVisibility, index, legalMoves, newGame, other, play, positionKey, repetitionCount, transition, uci, type Game } from '../src/game';
 import { initialRules, needsEngineBan } from '../src/drawback-state';
+import { attacked, preview } from '../src/drawback-helpers';
 
 function fakeEngine(best = 'e2e4') {
   const sent: string[] = [];
@@ -186,9 +187,12 @@ describe('AI constraints', () => {
   });
   it.each(['w', 'b'] as const)('still prefers a pawn-for-rook fog capture for %s', color => {
     const g = bare();
+    g.board.fill(null);
     g.turn = color;
     g.drawbacks[color] = 'fog';
     const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('h1')] = { color, kind: 'k' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
     g.board[at('d4')] = { color, kind: 'p' };
     g.board[at('e5')] = { color: other(color), kind: 'r' };
     expect(variantMove(g)).toMatchObject({ from: at('d4'), to: at('e5'), capture: at('e5') });
@@ -222,6 +226,42 @@ describe('AI constraints', () => {
     g.board[at('e5')] = { color: other(color), kind: 'p' };
     expect(fogVisibility(g, color).visible.has(at('e5'))).toBe(true);
     expect(variantMove(g)).not.toMatchObject({ from: at('d2'), to: at('d4') });
+  });
+  it.each(['w', 'b'] as const)('rescues the more valuable visibly attacked fog piece instead of pushing a pawn for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks = { w: 'fog', b: 'fog' };
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('h1')] = { color, kind: 'k' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
+    g.board[at('d3')] = { color, kind: 'q' };
+    g.board[at('f3')] = { color, kind: 'r' };
+    g.board[at('d4')] = { color, kind: 'p' };
+    g.board[at('b3')] = { color, kind: 'p' };
+    g.board[at('e4')] = { color: other(color), kind: 'p' };
+    expect(fogVisibility(g, color).visible.has(at('e4'))).toBe(true);
+    expect(attacked(g, at('d3'), other(color))).toBe(true);
+    expect(attacked(g, at('f3'), other(color))).toBe(true);
+    const move = variantMove(g);
+    expect(move.from).toBe(at('d3'));
+    expect(attacked(preview(g, move), move.to, other(color))).toBe(false);
+  });
+  it.each(['w', 'b'] as const)('does not use unseen attackers to award a fog rescue bonus for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('h1')] = { color, kind: 'k' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
+    g.board[at('d3')] = { color, kind: 'q' };
+    g.board[at('d4')] = { color, kind: 'p' };
+    const expected = uci(variantMove(g));
+    g.board[at('f4')] = { color: other(color), kind: 'n' };
+    expect(fogVisibility(g, color).visible.has(at('f4'))).toBe(false);
+    expect(attacked(g, at('d3'), other(color))).toBe(true);
+    expect(uci(variantMove(g))).toBe(expected);
   });
   it.each(['w', 'b'] as const)('develops an unmoved fog piece without rewarding a return to its starting square for %s', color => {
     const g = bare();

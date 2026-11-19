@@ -446,6 +446,10 @@ development bonus; castling receives a separate 60-point bonus. Piece identities
 and the AI's own move history prevent repeated development rewards after returning
 to a starting square. Castling also marks the rook as developed. These bonuses
 do not override the visible-attack penalty.
+A piece escaping a visible attack receives a bonus equal to its material value,
+so rescuing a threatened queen outweighs routine pawn pushes or rescuing a rook.
+The bonus requires the destination to be free of visible enemy attacks after
+the move; unseen attackers never trigger it.
 Unknown pawn blockers and unseen enemy
 identities are never used for scoring; the full board is never sent to Stockfish
 for that player. This policy is intentionally weaker than full-information AI.
