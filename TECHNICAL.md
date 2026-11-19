@@ -416,7 +416,34 @@ variant legality. Every submitted move, including engine output, is revalidated.
 
 When the AI has Fog of War, it uses an observation-limited, one-ply heuristic,
 not Stockfish. It scores only known captures and its own destinations from
-the same visibility map as the UI. Unknown pawn blockers and unseen enemy
+the same visibility map as the UI. Capture scores subtract a recapture-risk penalty
+from the victim's value. A visible defender on the observation-only board after
+the capture incurs the capturing piece's full value (including a king's value).
+Otherwise, the opening hidden-recapture risk decreases linearly from 55% on
+the target's own home rank to 5% on its farthest rank. That rank bias fades
+linearly to a uniform 25% by the AI's 30th personal move and remains uniform
+afterward. The estimate is then multiplied by `0.25 + 0.75 * remainingMaterial / 4000`,
+where remaining non-king material starts at 4000 and subtracts only the AI's
+recorded enemy captures plus the proposed capture, floored at zero. Thus known
+material depletion lowers risk without consulting hidden enemy pieces or
+their hidden move history; unseen promotions are not inferred.
+The at-risk value is capped at a queen's value so kings can still take apparently
+undefended queens rather than always preferring pawn moves. This is a risk-tuning
+heuristic, not a calibrated probability. Promotion captures use the promoted
+piece's value. Pawn-for-rook trades remain attractive without encouraging
+queen-for-pawn grabs. Legal visible king captures win immediately and bypass
+this trade penalty.
+Destinations defended by another friendly piece receive a 40-point bonus,
+favoring supported development over unsupported pawn pushes. Quiet moves into
+a visible enemy attack lose the moved piece's value, even if it is supported.
+Both checks use the observation-only board after moving the piece, including
+castling and promotion, so a piece cannot count its own former attack as support.
+The first move of each non-king piece (including pawns) receives a 30-point
+development bonus; castling receives a separate 60-point bonus. Piece identities
+and the AI's own move history prevent repeated development rewards after returning
+to a starting square. Castling also marks the rook as developed. These bonuses
+do not override the visible-attack penalty.
+Unknown pawn blockers and unseen enemy
 identities are never used for scoring; the full board is never sent to Stockfish
 for that player. This policy is intentionally weaker than full-information AI.
 An opponent without Fog of War still sees and analyzes the full board normally.

@@ -2,8 +2,8 @@ import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { describe, expect, it, vi } from 'vitest';
 import { chooseAI, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from '../src/ai';
-import { DRAWBACKS, index, legalMoves, newGame, other, play, positionKey, repetitionCount, transition, uci, type Game } from '../src/game';
-import { needsEngineBan } from '../src/drawback-state';
+import { DRAWBACKS, fogVisibility, index, legalMoves, newGame, other, play, positionKey, repetitionCount, transition, uci, type Game } from '../src/game';
+import { initialRules, needsEngineBan } from '../src/drawback-state';
 
 function fakeEngine(best = 'e2e4') {
   const sent: string[] = [];
@@ -169,6 +169,167 @@ describe('AI constraints', () => {
       expect(legalMoves(g).map(uci)).toContain(uci(variantMove(g)));
     }
   }, 30000);
+  it.each(['w', 'b'] as const)('avoids expensive fog captures of pawns for %s despite unseen defenders', color => {
+    for (const kind of ['q', 'r'] as const) {
+      const g = bare();
+      g.turn = color;
+      g.drawbacks[color] = 'fog';
+      const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+      g.board[at('d4')] = { color, kind };
+      g.board[at('d5')] = { color: other(color), kind: 'p' };
+      const capture = legalMoves(g).find(m => m.from === at('d4') && m.to === at('d5'))!;
+      expect(capture.capture).toBe(at('d5'));
+      expect(uci(variantMove(g))).not.toBe(uci(capture));
+      g.board[at('d6')] = { color: other(color), kind: 'r' };
+      expect(uci(variantMove(g))).not.toBe(uci(capture));
+    }
+  });
+  it.each(['w', 'b'] as const)('still prefers a pawn-for-rook fog capture for %s', color => {
+    const g = bare();
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('d4')] = { color, kind: 'p' };
+    g.board[at('e5')] = { color: other(color), kind: 'r' };
+    expect(variantMove(g)).toMatchObject({ from: at('d4'), to: at('e5'), capture: at('e5') });
+  });
+  it.each(['w', 'b'] as const)('prefers a supported fog pawn advance over an unsupported double push for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('h1')] = { color, kind: 'k' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
+    g.board[at('c2')] = { color, kind: 'p' };
+    g.board[at('d2')] = { color, kind: 'p' };
+    for (const completed of [0, 19]) {
+      g.turns[color] = completed;
+      expect(variantMove(g)).toMatchObject({ from: at('d2'), to: at('d3') });
+    }
+  });
+  it.each(['w', 'b'] as const)('avoids a fog pawn push into a visible attack even with friendly support for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('h1')] = { color, kind: 'k' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
+    g.board[at('e1')] = { color, kind: 'r' };
+    g.board[at('c3')] = { color, kind: 'p' };
+    g.board[at('d2')] = { color, kind: 'p' };
+    g.board[at('e5')] = { color: other(color), kind: 'p' };
+    expect(fogVisibility(g, color).visible.has(at('e5'))).toBe(true);
+    expect(variantMove(g)).not.toMatchObject({ from: at('d2'), to: at('d4') });
+  });
+  it.each(['w', 'b'] as const)('develops an unmoved fog piece without rewarding a return to its starting square for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('h1')] = { color, kind: 'k' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
+    g.board[at('b1')] = { color, kind: 'n' };
+    g.board[at('d4')] = { color, kind: 'n' };
+    g.rules = initialRules(g, 42);
+    g.rules.events.push({
+      color, kind: 'n', pieceId: at('d4'), from: at('f3'), to: at('d4'),
+    });
+    expect(variantMove(g).from).toBe(at('b1'));
+    g.rules.events.push(
+      { color, kind: 'n', pieceId: at('b1'), from: at('b1'), to: at('c3') },
+      { color, kind: 'n', pieceId: at('b1'), from: at('c3'), to: at('b1') },
+    );
+    expect(variantMove(g).from).toBe(at('d4'));
+  });
+  it.each(['w', 'b'] as const)('prefers fog castling but not into a visible attack for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : index(name) ^ 56;
+    g.board[at('e1')] = { color, kind: 'k' };
+    g.board[at('e8')] = { color: other(color), kind: 'k' };
+    g.board[at('h1')] = { color, kind: 'r' };
+    g.rights[color].king = true;
+    g.rules = initialRules(g, 42);
+    expect(variantMove(g)).toMatchObject({
+      from: at('e1'), to: at('g1'), castle: { rookFrom: at('h1'), rookTo: at('f1') },
+    });
+    g.board[at('h2')] = { color: other(color), kind: 'b' };
+    expect(fogVisibility(g, color).visible.has(at('h2'))).toBe(true);
+    expect(legalMoves(g).some(move => move.castle)).toBe(true);
+    expect(variantMove(g).castle).toBeUndefined();
+  });
+  it.each(['w', 'b'] as const)('takes a queen with the fog king unless a visible defender can recapture for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('e1')] = { color, kind: 'k' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
+    g.board[at('a2')] = { color, kind: 'p' };
+    g.board[at('e2')] = { color: other(color), kind: 'q' };
+    const expected = { from: at('e1'), to: at('e2'), capture: at('e2') };
+    expect(variantMove(g)).toMatchObject(expected);
+    g.board[at('e3')] = { color: other(color), kind: 'r' };
+    expect(fogVisibility(g, color).visible.has(at('e3'))).toBe(false);
+    expect(variantMove(g)).toMatchObject(expected);
+    g.board[at('a3')] = { color, kind: 'r' };
+    expect(fogVisibility(g, color).visible.has(at('e3'))).toBe(true);
+    expect(variantMove(g)).not.toMatchObject(expected);
+  });
+  it('takes an immediate fog king capture rather than treating it as a defended trade', () => {
+    const g = bare();
+    g.drawbacks.w = 'fog';
+    g.board[index('e8')] = null;
+    g.board[index('e2')] = { color: 'b', kind: 'k' };
+    expect(uci(variantMove(g))).toBe('e1e2');
+  });
+  it.each(['w', 'b'] as const)('fades fog target-rank risk by personal move 30 for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('a1')] = { color, kind: 'k' };
+    g.board[at('h7')] = { color: other(color), kind: 'k' };
+    g.board[at('d4')] = { color, kind: 'q' };
+    g.board[at('d6')] = { color: other(color), kind: 'b' };
+    g.board[at('d1')] = { color: other(color), kind: 'b' };
+    for (const completed of [0, 14, 28]) {
+      g.turns[color] = completed;
+      expect(variantMove(g)).toMatchObject({ from: at('d4'), to: at('d1') });
+    }
+    for (const completed of [29, 39]) {
+      g.turns[color] = completed;
+      expect(variantMove(g)).toMatchObject({ from: at('d4'), to: at('d6') });
+    }
+  });
+  it.each(['w', 'b'] as const)('lowers fog recapture risk using known enemy material losses for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('e2')] = { color, kind: 'k' };
+    g.board[at('h7')] = { color: other(color), kind: 'k' };
+    g.board[at('d4')] = { color, kind: 'q' };
+    g.board[at('d3')] = { color: other(color), kind: 'p' };
+    const capture = { to: at('d3'), capture: at('d3') };
+    expect(variantMove(g)).not.toMatchObject(capture);
+    const events = (['q', 'r', 'b', 'b', 'n', 'n'] as const).map(captured => ({
+      color: other(color), kind: 'q' as const, pieceId: 1,
+      from: at('d4'), to: at('d3'), capture: at('d3'), captured,
+    }));
+    g.rules!.events = events;
+    expect(variantMove(g)).not.toMatchObject(capture);
+    g.rules!.events = events.map(event => ({ ...event, color }));
+    expect(variantMove(g)).toMatchObject(capture);
+  });
   it('uses only the fog view, not Stockfish or identities of unseen pieces', async () => {
     const g = bare();
     g.drawbacks.w = 'fog';
