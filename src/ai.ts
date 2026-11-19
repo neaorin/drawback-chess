@@ -1,5 +1,5 @@
 import { Chess, validateFen, type Square } from 'chess.js';
-import { fen, finishRepetition, fogVisibility, legalMoves, other, square, transition, uci, type Game, type Move, type Color } from './game';
+import { fen, finishRepetition, fogVisibility, legalMoves, other, pseudoMoves, square, transition, uci, type Game, type Move, type Color, type Kind } from './game';
 import { needsEngineBan, rulesFor } from './drawback-state';
 import { attacked, defended, preview } from './drawback-helpers';
 
@@ -110,8 +110,31 @@ function ordered(g: Game): Move[] {
     (b.capture === undefined ? 0 : values[g.board[b.capture]!.kind]) -
     (a.capture === undefined ? 0 : values[g.board[a.capture]!.kind]));
 }
+export function fogSquareDanger(observed: Game, unknown: ReadonlySet<number>, at: number, remainingMaterial: number): number {
+  const enemy = other(observed.turn);
+  const board = [...observed.board];
+  for (const square of unknown) board[square] = { color: enemy, kind: 'p' };
+  const position = { ...observed, board };
+  if (pseudoMoves(position, enemy).some(move => !unknown.has(move.from) && move.capture === at)) return 1;
+  const advance = observed.turn === 'w' ? 7 - Math.floor(at / 8) : Math.floor(at / 8);
+  const openingWeight = Math.max(0, 1 - observed.turns[observed.turn] / 29);
+  let probability = 0.25 + openingWeight * (0.5 * advance / 7 - 0.2);
+  // Starting-piece frequencies are priors, not knowledge of a blocker's hidden identity.
+  const kinds: [Kind, number][] = [['p', 8], ['n', 2], ['b', 2], ['r', 2], ['q', 1], ['k', 1]];
+  for (const square of unknown) {
+    let threat = 0;
+    for (const [kind, weight] of kinds) {
+      board[square] = { color: enemy, kind };
+      if (pseudoMoves(position, enemy).some(move => move.from === square && move.capture === at)) threat += weight / 16;
+    }
+    board[square] = { color: enemy, kind: 'p' };
+    probability = 1 - (1 - probability) * (1 - threat);
+  }
+  return probability * (0.25 + 0.75 * Math.max(0, Math.min(4000, remainingMaterial)) / 4000);
+}
+
 function fogMove(g: Game): Move {
-  const { visible } = fogVisibility(g, g.turn);
+  const { visible, occupied } = fogVisibility(g, g.turn);
   const enemy = other(g.turn);
   const state = rulesFor(g);
   const ownEvents = state.events.filter(event => event.color === g.turn);
@@ -121,7 +144,6 @@ function fogMove(g: Game): Move {
   const capturedMaterial = ownEvents.reduce((sum, event) =>
     sum + (event.capture !== undefined && event.captured && event.captured !== 'k'
       ? values[event.captured] : 0), 0);
-  const openingWeight = Math.max(0, 1 - g.turns[g.turn] / 29);
   const observed: Game = {
     ...g, board: g.board.map((piece, at) => visible.has(at) ? piece : null),
     drawbacks: { ...g.drawbacks, [enemy]: null },
@@ -132,26 +154,25 @@ function fogMove(g: Game): Move {
     const captured = move.capture !== undefined && visible.has(move.capture) ? g.board[move.capture] : null;
     if (captured?.kind === 'k') return move;
     const next = preview(observed, move);
-    const exposed = attacked(next, move.to, enemy);
-    const supported = defended(next, move.to, g.turn);
+    const unknown = new Set(occupied);
+    if (move.capture !== undefined) unknown.delete(move.capture);
+    const materialLeft = Math.max(0, startingMaterial - capturedMaterial - (captured ? values[captured.kind] : 0));
+    const danger = fogSquareDanger(next, unknown, move.to, materialLeft);
+    const exposed = danger === 1;
+    const supportBoard = [...next.board];
+    for (const square of unknown) supportBoard[square] = { color: enemy, kind: 'p' };
+    const supported = defended({ ...next, board: supportBoard }, move.to, g.turn);
     const attackerValue = values[move.promotion ?? piece.kind];
     const row = Math.floor(move.to / 8), col = move.to % 8;
     const advance = g.turn === 'w' ? 7 - row : row;
     let captureScore = 0;
     if (captured) {
-      const targetAdvance = captured.color === 'w' ? 7 - Math.floor(move.capture! / 8) : Math.floor(move.capture! / 8);
-      const positionalRisk = 0.25 + openingWeight * (0.3 - 0.5 * targetAdvance / 7);
-      // Only our observed captures inform the material estimate, never unseen enemy pieces.
-      const materialLeft = Math.max(0, startingMaterial - capturedMaterial - values[captured.kind]);
-      const materialScale = 0.25 + 0.75 * materialLeft / startingMaterial;
-      // Unknown defenses deserve caution, not the certainty of losing a king.
-      const risk = exposed ? attackerValue : positionalRisk * materialScale * Math.min(attackerValue, values.q);
-      captureScore = values[captured.kind] - risk;
+      captureScore = values[captured.kind];
     }
     const developing = piece.kind !== 'k' && !movedPieces.has(state.pieces[move.from]?.id ?? move.from);
-    const rescueBonus = !exposed && attacked(observed, move.from, enemy) ? values[piece.kind] : 0;
+    const rescueBonus = attacked(observed, move.from, enemy) ? values[piece.kind] * (1 - danger) : 0;
     const score = captureScore + rescueBonus + (supported ? 40 : 0) + (developing ? 30 : 0) + (move.castle ? 60 : 0) -
-      (!captured && exposed ? attackerValue : 0) +
+      (exposed ? attackerValue : danger * Math.min(attackerValue, values.q)) +
       (move.promotion ? values[move.promotion] : 0) +
       (piece.kind === 'p' ? advance * 9 : 0) +
       (7 - Math.abs(3.5 - col) - Math.abs(3.5 - row)) * 4;

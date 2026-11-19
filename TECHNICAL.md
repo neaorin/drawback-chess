@@ -419,18 +419,24 @@ This keeps fast Fog AI replies from leaving the human's next turn locked.
 
 When the AI has Fog of War, it uses an observation-limited, one-ply heuristic,
 not Stockfish. It scores only known captures and its own destinations from
-the same visibility map as the UI. Capture scores subtract a recapture-risk penalty
-from the victim's value. A visible defender on the observation-only board after
-the capture incurs the capturing piece's full value (including a king's value).
-Otherwise, the opening hidden-recapture risk decreases linearly from 55% on
-the target's own home rank to 5% on its farthest rank. That rank bias fades
+the same visibility map as the UI. All moves, quiet or capturing, subtract a
+destination-danger penalty. A visible attacker on the observation-only board
+after the move incurs the moved piece's full value (including a king's value).
+Otherwise, opening uncertainty increases linearly from 5% on the AI's own
+home rank to 55% on the opponent's home rank. That rank bias fades
 linearly to a uniform 25% by the AI's 30th personal move and remains uniform
 afterward. The estimate is then multiplied by `0.25 + 0.75 * remainingMaterial / 4000`,
 where remaining non-king material starts at 4000 and subtracts only the AI's
-recorded enemy captures plus the proposed capture, floored at zero. Thus known
+recorded enemy captures plus any proposed capture, floored at zero. Thus known
 material depletion lowers risk without consulting hidden enemy pieces or
 their hidden move history; unseen promotions are not inferred.
-The at-risk value is capped at a queen's value so kings can still take apparently
+Known-but-unidentified enemy pawn blockers also raise danger on squares they
+could attack. Candidate piece types are weighted by starting-piece frequencies
+(8 pawns, 2 each of knights/bishops/rooks, 1 queen, 1 king), without consulting
+the blocker's actual identity. Their inferred risks combine with baseline risk
+before material scaling. Known occupied squares block sliding attacks and
+friendly support rays, even when their occupant's identity is unknown.
+The uncertain at-risk value is capped at a queen's value so kings can still take apparently
 undefended queens rather than always preferring pawn moves. This is a risk-tuning
 heuristic, not a calibrated probability. Promotion captures use the promoted
 piece's value. Pawn-for-rook trades remain attractive without encouraging
@@ -446,10 +452,11 @@ development bonus; castling receives a separate 60-point bonus. Piece identities
 and the AI's own move history prevent repeated development rewards after returning
 to a starting square. Castling also marks the rook as developed. These bonuses
 do not override the visible-attack penalty.
-A piece escaping a visible attack receives a bonus equal to its material value,
+A piece escaping a visible attack receives a bonus equal to its material value
+multiplied by one minus its destination danger,
 so rescuing a threatened queen outweighs routine pawn pushes or rescuing a rook.
-The bonus requires the destination to be free of visible enemy attacks after
-the move; unseen attackers never trigger it.
+The bonus vanishes if the destination is visibly attacked and shrinks for
+inferred danger; unseen attackers never trigger it.
 Unknown pawn blockers and unseen enemy
 identities are never used for scoring; the full board is never sent to Stockfish
 for that player. This policy is intentionally weaker than full-information AI.

@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { describe, expect, it, vi } from 'vitest';
-import { chooseAI, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from '../src/ai';
+import { chooseAI, fogSquareDanger, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from '../src/ai';
 import { DRAWBACKS, fogVisibility, index, legalMoves, newGame, other, play, positionKey, repetitionCount, transition, uci, type Game } from '../src/game';
 import { initialRules, needsEngineBan } from '../src/drawback-state';
 import { attacked, preview } from '../src/drawback-helpers';
@@ -28,6 +28,56 @@ function bare(): Game {
 }
 
 describe('AI constraints', () => {
+  it.each(['w', 'b'] as const)('scales fog square danger by depth, phase, material and unknown blockers for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    const danger = (square: string, material = 4000, unknown = new Set<number>()) => {
+      const board = [...g.board];
+      board[at(square)] = { color, kind: 'q' };
+      return fogSquareDanger({ ...g, board }, unknown, at(square), material);
+    };
+    expect(danger('d2')).toBeLessThan(danger('d4'));
+    expect(danger('d4')).toBeLessThan(danger('d7'));
+    expect(danger('d4', 1000)).toBeLessThan(danger('d4'));
+    const unknown = new Set([at('c5')]);
+    expect(danger('d4', 4000, unknown)).toBeGreaterThan(danger('d4'));
+    g.board[at('c5')] = { color: other(color), kind: 'p' };
+    expect(danger('d4', 0)).toBe(1);
+    g.board[at('c5')] = null;
+    g.board[at('d8')] = { color: other(color), kind: 'r' };
+    expect(danger('d4')).toBe(1);
+    expect(danger('d4', 4000, new Set([at('d6')]))).toBeLessThan(1);
+    g.board[at('d8')] = null;
+    for (const completed of [29, 40]) {
+      g.turns[color] = completed;
+      expect(danger('d2')).toBeCloseTo(0.25);
+      expect(danger('d7')).toBeCloseTo(0.25);
+    }
+  });
+  it.each(['w', 'b'] as const)('avoids a quiet fog queen move near an unknown pawn blocker regardless of its identity for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks = { w: 'fog', b: 'fog' };
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('h1')] = { color, kind: 'k' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
+    g.board[at('d1')] = { color, kind: 'q' };
+    g.board[at('c4')] = { color, kind: 'p' };
+    g.board[at('f3')] = { color, kind: 'n' };
+    let expected: string | undefined;
+    for (const kind of ['p', 'n', 'b', 'r', 'q'] as const) {
+      g.board[at('c5')] = { color: other(color), kind };
+      expect(fogVisibility(g, color).occupied.has(at('c5'))).toBe(true);
+      const move = variantMove(g);
+      expect(move).not.toMatchObject({ from: at('d1'), to: at('d4') });
+      expected ??= uci(move);
+      expect(uci(move)).toBe(expected);
+    }
+  });
   it('does not send immediately losing orthodox moves when only variant moves meet the deadline', () => {
     const g = bare();
     g.drawbacks.w = 'inching-forward';
@@ -268,6 +318,7 @@ describe('AI constraints', () => {
     g.board.fill(null);
     g.turn = color;
     g.drawbacks[color] = 'fog';
+    g.turns[color] = 29;
     const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
     g.board[at('h1')] = { color, kind: 'k' };
     g.board[at('h8')] = { color: other(color), kind: 'k' };
@@ -355,7 +406,7 @@ describe('AI constraints', () => {
     g.turn = color;
     g.drawbacks[color] = 'fog';
     const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
-    g.board[at('e2')] = { color, kind: 'k' };
+    g.board[at('h1')] = { color, kind: 'k' };
     g.board[at('h7')] = { color: other(color), kind: 'k' };
     g.board[at('d4')] = { color, kind: 'q' };
     g.board[at('d3')] = { color: other(color), kind: 'p' };
