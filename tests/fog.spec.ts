@@ -123,6 +123,24 @@ test('Fog of War is selectable and playable against the AI without exposing its 
   await expect(page.locator('.last-square')).toHaveCount(0);
 });
 
+test('Black can move after each immediate Fog AI reply without reloading', async ({ page }) => {
+  await loadFog(page, newGame('horse', 'horse'), 'ai');
+  await page.getByRole('button', { name: /New game/ }).click();
+  await page.getByLabel('Play as').selectOption('b');
+  await page.getByLabel('Your drawback', { exact: true }).selectOption('fog');
+  await page.locator('#opponent-drawback-choice').selectOption('fog');
+  await page.getByRole('button', { name: /Let’s play/ }).click();
+  for (const [from, to] of [['g8', 'f6'], ['b8', 'c6']]) {
+    await expect(page.locator('.turn-card h2')).toHaveText('Black to move.');
+    await expect(page.locator(`[data-square="${from}"]`)).toHaveAttribute('draggable', 'true');
+    await page.locator(`[data-square="${from}"]`).click();
+    await expect(page.locator(`[data-square="${to}"]`)).toHaveClass(/legal-square/);
+    await page.locator(`[data-square="${to}"]`).click();
+    await expect(page.locator(`[data-square="${to}"] .piece`)).toHaveAttribute('src', /bN\.svg$/);
+  }
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
 test('fog renders at mobile sizes in dark mode', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });

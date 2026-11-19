@@ -413,6 +413,9 @@ game rather than the archive's simpler hidden-enemy-pieces wording.
 
 The game owns move generation; a standard chess library is never used to enforce
 variant legality. Every submitted move, including engine output, is revalidated.
+Successful AI turns and engine-ban preparation clear the UI's busy flag together
+with their position update, before effect cleanup can cancel the completed request.
+This keeps fast Fog AI replies from leaving the human's next turn locked.
 
 When the AI has Fog of War, it uses an observation-limited, one-ply heuristic,
 not Stockfish. It scores only known captures and its own destinations from

@@ -550,6 +550,7 @@ test('Ichthyophobe prepares a real engine restriction for a human and keeps it a
   expect(forbidden).toMatch(/^[a-h][1-8][a-h][1-8][qrbn]?$/);
   await expect(page.locator('.engine-note')).toContainText('Ichthyophobe · Stockfish');
   await page.locator(`[data-square="${forbidden.slice(0, 2)}"]`).click();
+  await expect(page.locator('.legal-square')).not.toHaveCount(0);
   await expect(page.locator(`[data-square="${forbidden.slice(2, 4)}"]`)).not.toHaveClass(/legal-square/);
   await page.reload();
   await expect(page.locator('.move-info')).toContainText(`${forbidden.slice(0, 2)}–${forbidden.slice(2, 4)}${forbidden.slice(4)}`);

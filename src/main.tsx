@@ -324,6 +324,7 @@ function App() {
     setEngineStatus('Preparing your move restriction…');
     void resolveEngineBan(game, client, strength).then(result => {
       if (cancelled) return;
+      setBusy(false);
       setGame(result.game);
       setEngineStatus(result.source);
       if (result.warning) setError(result.warning);
@@ -348,6 +349,7 @@ function App() {
       if (cancelled) return;
       setEngineStatus(result.source);
       if (result.warning) setError(result.warning);
+      setBusy(false);
       setGame(play(game, result.move));
       setSliding(result.move);
       setSelected(null);
