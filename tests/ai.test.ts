@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
-import { describe, expect, it, vi } from 'vitest';
-import { chooseAI, fogSquareDanger, resolveEngineBan, stockfishRoots, StockfishClient, variantMove, type EnginePort } from '../src/ai';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { chooseAI, fogPositionDanger, fogSquareDanger, resolveEngineBan, selectFogMove, stockfishRoots, StockfishClient, variantMove, type EnginePort } from '../src/ai';
 import { DRAWBACKS, fogVisibility, index, legalMoves, newGame, other, play, positionKey, repetitionCount, transition, uci, type Game } from '../src/game';
 import { initialRules, needsEngineBan } from '../src/drawback-state';
 import { attacked, preview } from '../src/drawback-helpers';
@@ -28,6 +28,104 @@ function bare(): Game {
 }
 
 describe('AI constraints', () => {
+  beforeEach(() => { vi.spyOn(Math, 'random').mockReturnValue(0); });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it.each(['w', 'b'] as const)('captures the fog queen attacking its king instead of only rewarding king movement for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.drawbacks = { w: 'fog', b: 'fog' };
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('e1')] = { color, kind: 'k' };
+    g.board[at('d2')] = { color, kind: 'b' };
+    g.board[at('a1')] = { color, kind: 'r' };
+    g.board[at('c1')] = { color: other(color), kind: 'q' };
+    g.board[at('c8')] = { color: other(color), kind: 'r' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
+    const before = JSON.stringify(g);
+    expect(variantMove(g)).toMatchObject({ to: at('c1'), capture: at('c1') });
+    expect(JSON.stringify(g)).toBe(before);
+  });
+  it.each(['w', 'b'] as const)('credits fog blocks and penalizes exposing another friendly piece for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('e1')] = { color, kind: 'k' };
+    g.board[at('b5')] = { color, kind: 'b' };
+    g.board[at('e8')] = { color: other(color), kind: 'r' };
+    const blocked = preview(g, { from: at('b5'), to: at('e2') });
+    const unknown = new Set<number>();
+    expect(fogPositionDanger(g, unknown, 4000) - fogPositionDanger(blocked, unknown, 4000)).toBeGreaterThan(18000);
+    const exposed = preview(blocked, { from: at('e2'), to: at('d3') });
+    expect(fogPositionDanger(exposed, unknown, 4000)).toBeGreaterThan(fogPositionDanger(blocked, unknown, 4000) + 18000);
+    const saferKing = preview(g, { from: at('e1'), to: at('d1') });
+    const riskierKing = preview(g, { from: at('e1'), to: at('d2') });
+    expect(fogPositionDanger(saferKing, unknown, 4000)).toBeLessThan(fogPositionDanger(riskierKing, unknown, 4000));
+  });
+
+  it('gives the best fog move 80% and weights only alternatives within 90% by score', () => {
+    const candidates = [90, 100, 95, 89.99].map((score, from) => ({ score, move: { from, to: from + 8 } }));
+    const counts = [0, 0, 0, 0];
+    for (let i = 0; i < 10000; i++) {
+      vi.mocked(Math.random).mockReturnValue((i + 0.5) / 10000);
+      counts[selectFogMove(candidates).from]++;
+    }
+    expect(counts[1]).toBe(8000);
+    expect(Math.abs(counts[0] - 2000 * 90 / 185)).toBeLessThan(1);
+    expect(Math.abs(counts[2] - 2000 * 95 / 185)).toBeLessThan(1);
+    expect(counts[3]).toBe(0);
+    expect(candidates.map(candidate => candidate.score)).toEqual([90, 100, 95, 89.99]);
+  });
+
+  it('handles sole candidates, score ties and negative fog scores', () => {
+    const candidates = [0, 1, 2].map(from => ({ score: 0, move: { from, to: from + 8 } }));
+    vi.mocked(Math.random).mockReturnValue(0.79);
+    expect(selectFogMove(candidates)).toBe(candidates[0].move);
+    vi.mocked(Math.random).mockReturnValue(0.85);
+    expect(selectFogMove(candidates)).toBe(candidates[1].move);
+    vi.mocked(Math.random).mockReturnValue(0.99);
+    expect(selectFogMove(candidates)).toBe(candidates[2].move);
+    expect(selectFogMove(candidates.slice(0, 1))).toBe(candidates[0].move);
+    const negative = [-100, -110, -111].map((score, from) => ({ score, move: { from, to: from + 8 } }));
+    expect(selectFogMove(negative)).toBe(negative[1].move);
+    negative[1].score = -110.01;
+    expect(selectFogMove(negative)).toBe(negative[0].move);
+    expect(() => selectFogMove([])).toThrow('No legal move');
+  });
+
+  it('can choose a different legal fog opening from the near-best pool', () => {
+    const g = newGame('fog', 'fog', 42);
+    const best = variantMove(g);
+    vi.mocked(Math.random).mockReturnValue(0.99);
+    const alternative = variantMove(g);
+    expect(uci(alternative)).not.toBe(uci(best));
+    expect(legalMoves(g).map(uci)).toContain(uci(alternative));
+  });
+  it.each(['w', 'b'] as const)('includes both minor-piece and pawn development in the fog opening pool for %s', color => {
+    const g = newGame('fog', 'fog', 42);
+    g.turn = color;
+    const kinds = new Set<string>();
+    for (let i = 0; i < 100; i++) {
+      vi.mocked(Math.random).mockReturnValue((i + 0.5) / 100);
+      kinds.add(g.board[variantMove(g).from]!.kind);
+    }
+    expect(kinds.has('n')).toBe(true);
+    expect(kinds.has('p')).toBe(true);
+  });
+  it.each(['w', 'b'] as const)('develops fog minor pieces within the first four personal moves for %s', color => {
+    let g = newGame('fog', 'fog', 42);
+    const developed = new Set<number>();
+    for (let ply = 0; ply < 8 && !g.result; ply++) {
+      const move = variantMove(g);
+      if (g.turn === color && ['n', 'b'].includes(g.board[move.from]!.kind)) {
+        developed.add(g.rules!.pieces[move.from].id);
+      }
+      g = play(g, move);
+    }
+    expect(developed.size).toBeGreaterThanOrEqual(2);
+  });
   it.each(['w', 'b'] as const)('scales fog square danger by depth, phase, material and unknown blockers for %s', color => {
     const g = bare();
     g.board.fill(null);
@@ -370,10 +468,13 @@ describe('AI constraints', () => {
     expect(fogVisibility(g, color).visible.has(at('e3'))).toBe(false);
     expect(variantMove(g)).toMatchObject(expected);
     g.board[at('a3')] = { color, kind: 'r' };
+    g.board[at('d1')] = { color, kind: 'b' };
     expect(fogVisibility(g, color).visible.has(at('e3'))).toBe(true);
     expect(variantMove(g)).not.toMatchObject(expected);
+    expect(variantMove(g)).toMatchObject({ from: at('d1'), to: at('e2'), capture: at('e2') });
   });
   it('takes an immediate fog king capture rather than treating it as a defended trade', () => {
+    vi.mocked(Math.random).mockReturnValue(0.99);
     const g = bare();
     g.drawbacks.w = 'fog';
     g.board[index('e8')] = null;

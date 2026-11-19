@@ -418,10 +418,14 @@ with their position update, before effect cleanup can cancel the completed reque
 This keeps fast Fog AI replies from leaving the human's next turn locked.
 
 When the AI has Fog of War, it uses an observation-limited, one-ply heuristic,
-not Stockfish. It scores only known captures and its own destinations from
-the same visibility map as the UI. All moves, quiet or capturing, subtract a
-destination-danger penalty. A visible attacker on the observation-only board
-after the move incurs the moved piece's full value (including a king's value).
+not Stockfish. It scores known captures and whole-position safety using
+the same visibility map as the UI. For each move it sums danger-weighted values
+of all friendly pieces before and after the move. The reduction in total danger
+is added to the move's capture value and positional bonuses. This replaces both
+the moved-piece rescue bonus and destination-danger penalty, avoiding double
+counting. Capturing an attacker or blocking its line therefore earns credit for
+saving other pieces, while exposing another piece loses safety credit.
+A visible attacker incurs the threatened piece's full value (including a king's value).
 Otherwise, opening uncertainty increases linearly from 5% on the AI's own
 home rank to 55% on the opponent's home rank. That rank bias fades
 linearly to a uniform 25% by the AI's 30th personal move and remains uniform
@@ -438,25 +442,33 @@ before material scaling. Known occupied squares block sliding attacks and
 friendly support rays, even when their occupant's identity is unknown.
 The uncertain at-risk value is capped at a queen's value so kings can still take apparently
 undefended queens rather than always preferring pawn moves. This is a risk-tuning
-heuristic, not a calibrated probability. Promotion captures use the promoted
-piece's value. Pawn-for-rook trades remain attractive without encouraging
+heuristic, not a calibrated probability. The resulting position includes promoted
+pieces and both castling relocations. Pawn-for-rook trades remain attractive without encouraging
 queen-for-pawn grabs. Legal visible king captures win immediately and bypass
-this trade penalty.
+this safety calculation.
 Destinations defended by another friendly piece receive a 40-point bonus,
 favoring supported development over unsupported pawn pushes. Quiet moves into
-a visible enemy attack lose the moved piece's value, even if it is supported.
-Both checks use the observation-only board after moving the piece, including
+danger increase total position risk, even if the moved piece is supported.
+Safety and support checks use the observation-only board after moving the piece, including
 castling and promotion, so a piece cannot count its own former attack as support.
-The first move of each non-king piece (including pawns) receives a 30-point
-development bonus; castling receives a separate 60-point bonus. Piece identities
+The first move of a knight or bishop receives a 100-point development bonus,
+making minor-piece development competitive with pawn pushes despite its larger
+uncertainty penalty. Other non-king pieces (including pawns) receive 30 points;
+castling receives a separate 60-point bonus. Piece identities
 and the AI's own move history prevent repeated development rewards after returning
 to a starting square. Castling also marks the rook as developed. These bonuses
 do not override the visible-attack penalty.
-A piece escaping a visible attack receives a bonus equal to its material value
-multiplied by one minus its destination danger,
-so rescuing a threatened queen outweighs routine pawn pushes or rescuing a rook.
-The bonus vanishes if the destination is visibly attacked and shrinks for
-inferred danger; unseen attackers never trigger it.
+Safer destinations lower the resulting position's risk more than dangerous ones,
+so moving a king to safety is still preferred to leaving it exposed. Safety
+improvements account for every friendly piece, not just the one moving, and
+never inspect unseen attackers.
+Fog move selection gives the highest-scoring move an 80% chance when alternatives
+score within 10% of its score. The remaining 20% is split proportionally to
+the alternatives' scores. For negative best scores the cutoff is
+`best - 0.1 * abs(best)` and weights are shifted by `2 * abs(best)`;
+zero-score ties share the alternative probability equally. The first generated
+move wins a top-score tie and retains the 80% share. With no alternatives, the
+best move is always selected. Enemy-king captures bypass randomness.
 Unknown pawn blockers and unseen enemy
 identities are never used for scoring; the full board is never sent to Stockfish
 for that player. This policy is intentionally weaker than full-information AI.

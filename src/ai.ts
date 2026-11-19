@@ -1,7 +1,7 @@
 import { Chess, validateFen, type Square } from 'chess.js';
 import { fen, finishRepetition, fogVisibility, legalMoves, other, pseudoMoves, square, transition, uci, type Game, type Move, type Color, type Kind } from './game';
 import { needsEngineBan, rulesFor } from './drawback-state';
-import { attacked, defended, preview } from './drawback-helpers';
+import { defended, preview } from './drawback-helpers';
 
 export interface EnginePort {
   postMessage(message: string): void;
@@ -133,6 +133,35 @@ export function fogSquareDanger(observed: Game, unknown: ReadonlySet<number>, at
   return probability * (0.25 + 0.75 * Math.max(0, Math.min(4000, remainingMaterial)) / 4000);
 }
 
+export function fogPositionDanger(observed: Game, unknown: ReadonlySet<number>, remainingMaterial: number): number {
+  return observed.board.reduce((sum, piece, at) => {
+    if (!piece || piece.color !== observed.turn) return sum;
+    const danger = fogSquareDanger(observed, unknown, at, remainingMaterial);
+    const atRisk = danger === 1 ? values[piece.kind] : Math.min(values[piece.kind], values.q);
+    return sum + danger * atRisk;
+  }, 0);
+}
+
+export function selectFogMove(scored: { move: Move; score: number }[]): Move {
+  const ranked = [...scored].sort((a, b) => b.score - a.score);
+  const best = ranked[0];
+  if (!best) throw new Error('No legal move is available for the fog AI.');
+  const threshold = best.score - Math.abs(best.score) * 0.1;
+  const alternatives = ranked.slice(1).filter(candidate => candidate.score >= threshold);
+  if (!alternatives.length) return best.move;
+  const roll = Math.random();
+  if (roll < 0.8) return best.move;
+  // Shift negative scores to positive weights; zero-score ties share the remainder equally.
+  const weight = (score: number) => best.score === 0 ? 1 : score + (best.score < 0 ? -2 * best.score : 0);
+  const total = alternatives.reduce((sum, candidate) => sum + weight(candidate.score), 0);
+  let ticket = (roll - 0.8) / 0.2 * total;
+  for (const candidate of alternatives) {
+    ticket -= weight(candidate.score);
+    if (ticket < 0) return candidate.move;
+  }
+  return alternatives[alternatives.length - 1].move;
+}
+
 function fogMove(g: Game): Move {
   const { visible, occupied } = fogVisibility(g, g.turn);
   const enemy = other(g.turn);
@@ -148,7 +177,8 @@ function fogMove(g: Game): Move {
     ...g, board: g.board.map((piece, at) => visible.has(at) ? piece : null),
     drawbacks: { ...g.drawbacks, [enemy]: null },
   };
-  let best: Move | undefined, bestScore = -Infinity;
+  const dangerBefore = fogPositionDanger(observed, occupied, Math.max(0, startingMaterial - capturedMaterial));
+  const scored: { move: Move; score: number }[] = [];
   for (const move of legalMoves(g)) {
     const piece = g.board[move.from]!;
     const captured = move.capture !== undefined && visible.has(move.capture) ? g.board[move.capture] : null;
@@ -157,12 +187,10 @@ function fogMove(g: Game): Move {
     const unknown = new Set(occupied);
     if (move.capture !== undefined) unknown.delete(move.capture);
     const materialLeft = Math.max(0, startingMaterial - capturedMaterial - (captured ? values[captured.kind] : 0));
-    const danger = fogSquareDanger(next, unknown, move.to, materialLeft);
-    const exposed = danger === 1;
+    const safetyImprovement = dangerBefore - fogPositionDanger(next, unknown, materialLeft);
     const supportBoard = [...next.board];
     for (const square of unknown) supportBoard[square] = { color: enemy, kind: 'p' };
     const supported = defended({ ...next, board: supportBoard }, move.to, g.turn);
-    const attackerValue = values[move.promotion ?? piece.kind];
     const row = Math.floor(move.to / 8), col = move.to % 8;
     const advance = g.turn === 'w' ? 7 - row : row;
     let captureScore = 0;
@@ -170,16 +198,14 @@ function fogMove(g: Game): Move {
       captureScore = values[captured.kind];
     }
     const developing = piece.kind !== 'k' && !movedPieces.has(state.pieces[move.from]?.id ?? move.from);
-    const rescueBonus = attacked(observed, move.from, enemy) ? values[piece.kind] * (1 - danger) : 0;
-    const score = captureScore + rescueBonus + (supported ? 40 : 0) + (developing ? 30 : 0) + (move.castle ? 60 : 0) -
-      (exposed ? attackerValue : danger * Math.min(attackerValue, values.q)) +
+    const developmentBonus = developing ? piece.kind === 'n' || piece.kind === 'b' ? 100 : 30 : 0;
+    const score = captureScore + safetyImprovement + (supported ? 40 : 0) + developmentBonus + (move.castle ? 60 : 0) +
       (move.promotion ? values[move.promotion] : 0) +
       (piece.kind === 'p' ? advance * 9 : 0) +
       (7 - Math.abs(3.5 - col) - Math.abs(3.5 - row)) * 4;
-    if (score > bestScore) { bestScore = score; best = move; }
+    scored.push({ move, score });
   }
-  if (!best) throw new Error('No legal move is available for the fog AI.');
-  return best;
+  return selectFogMove(scored);
 }
 
 export function variantMove(g: Game, depth = 2): Move {
