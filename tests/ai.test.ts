@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { chooseAI, fogPositionDanger, fogSquareDanger, resolveEngineBan, selectFogMove, stockfishRoots, StockfishClient, variantMove, type EnginePort } from '../src/ai';
 import { DRAWBACKS, fogVisibility, index, legalMoves, newGame, other, play, positionKey, repetitionCount, transition, uci, type Game } from '../src/game';
 import { initialRules, needsEngineBan } from '../src/drawback-state';
-import { attacked, preview } from '../src/drawback-helpers';
+import { attacked, defended, preview } from '../src/drawback-helpers';
 
 function fakeEngine(best = 'e2e4') {
   const sent: string[] = [];
@@ -30,6 +30,34 @@ function bare(): Game {
 describe('AI constraints', () => {
   beforeEach(() => { vi.spyOn(Math, 'random').mockReturnValue(0); });
   afterEach(() => { vi.restoreAllMocks(); });
+
+  it.each(['w', 'b'] as const)('prefers a defended fog rook move onto a file without friendly pawns for %s', color => {
+    const g = bare();
+    g.board.fill(null);
+    g.turn = color;
+    g.turns[color] = 29;
+    g.drawbacks[color] = 'fog';
+    const at = (name: string) => color === 'w' ? index(name) : 63 - index(name);
+    g.board[at('e2')] = { color, kind: 'k' };
+    g.board[at('h8')] = { color: other(color), kind: 'k' };
+    g.board[at('a1')] = { color, kind: 'r' };
+    g.board[at('d3')] = { color, kind: 'p' };
+    g.rules = initialRules(g, 42);
+    for (const name of ['a1', 'd3']) {
+      g.rules.events.push({ color, kind: g.board[at(name)]!.kind, pieceId: at(name), from: at(name), to: at(name) });
+    }
+    const openFile = { from: at('a1'), to: at('e1') };
+    expect(defended(preview(g, openFile), openFile.to, color)).toBe(true);
+    expect(variantMove(g)).toMatchObject(openFile);
+    g.board[at('e4')] = { color, kind: 'p' };
+    g.rules.events.push({ color, kind: 'p', pieceId: at('e4'), from: at('e4'), to: at('e4') });
+    expect(variantMove(g)).not.toMatchObject(openFile);
+    g.board[at('e4')] = null;
+    g.board[at('e2')] = null;
+    g.board[at('h2')] = { color, kind: 'k' };
+    expect(defended(preview(g, openFile), openFile.to, color)).toBe(false);
+    expect(variantMove(g)).not.toMatchObject(openFile);
+  });
 
   it.each(['w', 'b'] as const)('captures the fog queen attacking its king instead of only rewarding king movement for %s', color => {
     const g = bare();

@@ -199,7 +199,9 @@ function fogMove(g: Game): Move {
     }
     const developing = piece.kind !== 'k' && !movedPieces.has(state.pieces[move.from]?.id ?? move.from);
     const developmentBonus = developing ? piece.kind === 'n' || piece.kind === 'b' ? 100 : 30 : 0;
-    const score = captureScore + safetyImprovement + (supported ? 40 : 0) + developmentBonus + (move.castle ? 60 : 0) +
+    const openFileBonus = piece.kind === 'r' && supported &&
+      !next.board.some((occupant, at) => at % 8 === col && occupant?.color === g.turn && occupant.kind === 'p') ? 20 : 0;
+    const score = captureScore + safetyImprovement + (supported ? 40 : 0) + openFileBonus + developmentBonus + (move.castle ? 60 : 0) +
       (move.promotion ? values[move.promotion] : 0) +
       (piece.kind === 'p' ? advance * 9 : 0) +
       (7 - Math.abs(3.5 - col) - Math.abs(3.5 - row)) * 4;

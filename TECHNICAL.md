@@ -462,6 +462,9 @@ this safety calculation.
 Destinations defended by another friendly piece receive a 40-point bonus,
 favoring supported development over unsupported pawn pushes. Quiet moves into
 danger increase total position risk, even if the moved piece is supported.
+Rook moves receive another 20 points when the destination file has no friendly
+pawns and the rook is defended there after moving. Enemy pawns do not disqualify
+the file; this bonus uses only the observation-only board and friendly support.
 Safety and support checks use the observation-only board after moving the piece, including
 castling and promotion, so a piece cannot count its own former attack as support.
 The first move of a knight or bishop receives a 100-point development bonus,
