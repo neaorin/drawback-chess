@@ -201,6 +201,9 @@ function App() {
   }, []);
   const viewer = mode === 'ai' ? human : game.turn;
   const displayedGame = reviewPosition ?? game;
+  const showCapturedMaterial = game.drawbacks[viewer] === 'fog' && !handoff && !(mode === 'local' && sliding);
+  const capturedMaterial = rulesFor(displayedGame).events.flatMap(event =>
+    event.color === viewer && event.capture !== undefined && event.captured ? [event.captured] : []);
   const viewPly = displayedGame.history.length;
   const visibilityGame = game.result ? { ...displayedGame, result: game.result } : displayedGame;
   const fogged = game.drawbacks[viewer] === 'fog' && !game.result;
@@ -506,6 +509,15 @@ function App() {
               })}
             </div>
           </div>
+          {showCapturedMaterial && <div className="captured-material" role="group" aria-label="Pieces you captured">
+            <span className="captured-label">Captured</span>
+            {capturedMaterial.length ? (['p', 'n', 'b', 'r', 'q', 'k'] as const).map(kind => {
+              const count = capturedMaterial.filter(captured => captured === kind).length;
+              return count ? <span key={kind} className="captured-group" data-kind={kind}>
+                {Array.from({ length: count }, (_, i) => <span key={i} className="captured-piece" role="img" aria-label={`Captured ${colorName(other(viewer))} ${names[kind]}`} title={`${colorName(other(viewer))} ${names[kind]}`}><Glyph piece={{ color: other(viewer), kind }} /></span>)}
+              </span> : null;
+            }) : <span className="captured-empty">None yet</span>}
+          </div>}
           {playerRow(bottomColor)}
           <div className="history-navigation" aria-label="Position navigation">
             <button disabled={!!overlay || !!sliding || viewPly === 0} onClick={() => navigateHistory(viewPly - 1)} aria-label="Previous position">←</button>

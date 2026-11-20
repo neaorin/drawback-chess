@@ -393,6 +393,12 @@ seeing the second step. If another piece can reach the blocker, its identity is
 shown normally. Fog does not alter movement or capture legality.
 
 Opponent move history and last-move highlights are hidden while you have fog.
+Below the board, Fog players see small icons of enemy pieces they have captured.
+Icons are grouped by type in pawn, knight, bishop, rook, queen, king order,
+with repeated pieces partially overlapping within each group to save space.
+These use their own recorded capture events, not hidden opponent moves or board
+contents. The icons follow the reviewed position and survive reloads; they hide
+during local handoff and its move animation. Opponent captures are not listed.
 Opponent pieces do not slide from unseen origins, and king halos only reflect
 visible attackers. Hidden pieces are omitted from the rendered board and square
 accessibility labels, not merely covered with a translucent effect. During

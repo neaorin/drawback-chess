@@ -114,6 +114,13 @@ main { margin: 0 auto; }
 .new-game span { font-size: 24px; line-height: 18px; font-weight: 300; }
 .game-layout { --sidebar-width: 348px; --layout-gap: 32px; display: grid; grid-template-columns: minmax(0, 1fr) var(--sidebar-width); gap: var(--layout-gap); align-items: start; width: min(100%, calc(var(--board-max-size, 1100px) + var(--sidebar-width) + var(--layout-gap))); margin-inline: auto; }
 .board-column { min-width: 0; }
+.captured-material { display: flex; align-items: center; flex-wrap: wrap; gap: 1px; min-height: 30px; padding: 4px 2px; }
+.captured-group { display: inline-flex; }
+.captured-group .captured-piece + .captured-piece { margin-left: -17px; }
+.captured-label, .captured-empty { font-size: 11px; color: var(--cp-text-soft); }
+.captured-label { margin-right: 5px; }
+.captured-piece { display: inline-flex; width: 22px; height: 22px; }
+.captured-piece .piece { width: 100%; height: 100%; }
 .player-row { display: flex; align-items: center; gap: 12px; padding: 0 2px 14px; min-height: 60px; }
 .board-frame + .player-row { padding: 16px 2px 0; }
 .avatar { width: 42px; height: 42px; border: 1px solid var(--cp-border); background: var(--cp-surface); border-radius: 10px; display: grid; place-items: center; }

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { DRAWBACKS, index, newGame, type Game, type Piece } from '../src/game';
+import { DRAWBACKS, index, newGame, play, type Game, type Piece } from '../src/game';
 
 async function loadFog(page: Page, game: Game, mode = 'local', human = 'w') {
   await page.addInitScript(({ game, mode, human }) => {
@@ -42,6 +42,54 @@ test('fog hides pieces and labels, while pawn blockers show only an unknown occu
   await expect(page.locator('[data-square="e2"]')).toHaveAttribute('aria-label', /White pawn/);
   await expect(page.locator('.move-pair')).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('Fog captured icons follow the viewer, history, reload and handoff without exposing enemy captures', async ({ page }) => {
+  let game = newGame('fog', 'fog', 42);
+  for (const [from, to] of [['e2', 'e4'], ['d7', 'd5'], ['e4', 'd5'], ['d8', 'd5']]) {
+    game = play(game, { from: index(from), to: index(to) });
+  }
+  await loadFog(page, game);
+  const material = page.getByRole('group', { name: 'Pieces you captured' });
+  await expect(material.getByRole('img', { name: 'Captured Black pawn' })).toBeVisible();
+  await expect(material.locator('img')).toHaveAttribute('src', /bP\.svg$/);
+  await expect(material.getByRole('img', { name: 'Captured White pawn' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Previous position', exact: true }).click();
+  await page.getByRole('button', { name: 'Previous position', exact: true }).click();
+  await expect(material).toContainText('None yet');
+  await expect(material.locator('img')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Return to latest' }).click();
+  await page.reload();
+  await expect(material).toHaveCount(0);
+  await page.getByRole('button', { name: 'I’m the white player' }).click();
+  await expect(material.locator('img')).toHaveCount(1);
+  await page.locator('[data-square="b1"]').click();
+  await page.locator('[data-square="c3"]').click();
+  await expect(page.getByRole('heading', { name: 'Pass to Black.' })).toBeVisible();
+  await expect(material).toHaveCount(0);
+  await page.getByRole('button', { name: 'I’m the black player' }).click();
+  await expect(material.getByRole('img', { name: 'Captured White pawn' })).toBeVisible();
+  await expect(material.locator('img')).toHaveAttribute('src', /wP\.svg$/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(material).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('captured Fog pieces are grouped by ascending value with overlap only within groups', async ({ page }) => {
+  const game = newGame('fog', 'fog', 42);
+  game.rules!.events = (['q', 'p', 'r', 'n', 'p', 'b', 'n'] as const).map((captured, i) => ({
+    color: 'w', kind: 'p', pieceId: i, from: index('a2'), to: index('b3'),
+    capture: index('b3'), captured,
+  }));
+  await loadFog(page, game);
+  const groups = page.locator('.captured-group');
+  expect(await groups.evaluateAll(elements => elements.map(el => el.getAttribute('data-kind')))).toEqual(['p', 'n', 'b', 'r', 'q']);
+  await expect(page.locator('.captured-group[data-kind="p"] .captured-piece')).toHaveCount(2);
+  const first = await page.locator('.captured-group[data-kind="p"] .captured-piece').nth(0).boundingBox();
+  const second = await page.locator('.captured-group[data-kind="p"] .captured-piece').nth(1).boundingBox();
+  expect(second!.x).toBeGreaterThan(first!.x);
+  expect(second!.x).toBeLessThan(first!.x + first!.width);
+  await expect(page.locator('.captured-piece')).toHaveCount(7);
 });
 
 test('a different piece reveals the identity of a pawn blocker', async ({ page }) => {
