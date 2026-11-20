@@ -7,6 +7,39 @@ function commandWithCapture() {
   return game;
 }
 
+test('GitHub header link is accessible and fits desktop and mobile layouts', async ({ page }) => {
+  await page.goto('/');
+  const link = page.locator('.site-header').getByRole('link', { name: 'Drawback Chess on GitHub (opens in a new tab)' });
+  await expect(link).toHaveAttribute('href', 'http://github.com/neaorin/drawback-chess');
+  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  await expect(link.locator('svg')).toBeVisible();
+  for (const width of [1280, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(link).toBeVisible();
+    await link.focus();
+    await expect(link).toBeFocused();
+    const bounds = await link.boundingBox();
+    const toggleBounds = await page.getByRole('switch', { name: 'Dark theme', exact: true }).boundingBox();
+    expect(bounds!.y + bounds!.height / 2).toBeCloseTo(toggleBounds!.y + toggleBounds!.height / 2, 1);
+    const sound = page.getByRole('button', { name: 'Move sounds', exact: true });
+    const soundBounds = await sound.boundingBox();
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(soundBounds!.x);
+    expect(soundBounds!.x + soundBounds!.width).toBeLessThanOrEqual(toggleBounds!.x);
+    await page.keyboard.press('Tab');
+    await expect(sound).toBeFocused();
+    const navigation = await page.locator('.site-header nav').boundingBox();
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    await link.click({ trial: true });
+    for (const name of ['The drawbacks', 'How to play']) {
+      const button = page.locator('.site-header').getByRole('button', { name });
+      await button.click({ trial: true });
+    }
+    expect(bounds!.y).toBeLessThan(navigation!.y + navigation!.height);
+  }
+});
+
 test('theme toggle persists without changing the board or game', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/');

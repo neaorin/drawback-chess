@@ -85,7 +85,8 @@ nav button svg { width: 15px; }
 .nav-active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--cp-accent); }
 .count-pill { border: 1px solid var(--cp-border); border-radius: 5px; padding: 1px 5px; font-size: 10px; }
 .header-settings { margin-left: auto; display: flex; align-items: center; gap: 4px; }
-.sound-toggle { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 20px; color: var(--cp-text-soft); }
+.sound-toggle, .github-link { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 20px; color: var(--cp-text-soft); }
+.github-link:hover { color: var(--cp-accent); }
 .theme-toggle { padding: 8px; flex-shrink: 0; border-radius: 20px; }
 .theme-switch-track { display: block; width: 40px; height: 24px; padding: 3px; border-radius: 12px; background: var(--cp-border-strong); }
 .theme-switch-thumb { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--cp-surface); transition: transform .15s; }
@@ -292,8 +293,9 @@ select { width: 100%; padding: 12px; border: 1px solid var(--cp-border); border-
 }
 @media (max-width: 820px) {
   .app-shell { padding: 0 24px; max-width: 680px; }
-  .site-header { height: auto; display: grid; grid-template-columns: 1fr auto; gap: 0 16px; padding: 4px 0; }
-  .site-header nav { grid-row: 2; grid-column: 1 / -1; }
+  .site-header { height: auto; display: flex; flex-wrap: wrap; gap: 0 16px; padding: 4px 0; }
+  .site-header nav { order: 1; width: 100%; }
+  .header-settings { flex-shrink: 0; }
   .theme-toggle { padding: 4px; min-width: 44px; }
   .brand { font-size: 21px; }
   .brand-mark { width: 34px; height: 34px; font-size: 29px; }

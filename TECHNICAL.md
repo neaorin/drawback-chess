@@ -60,6 +60,10 @@ and both players' drawbacks with difficulty levels beside their names. Review th
 board or choose Play again. Reloading a finished save does not reopen it.
 Use the toggle switch on the right of the header to switch between light and dark.
 Your choice is saved locally; without a saved choice, the system theme is used.
+The GitHub icon at the right of the header opens the project repository in a new tab.
+It appears before the sound and theme toggles on the same row, including on
+narrow screens; the controls wrap together
+when there is not enough room beside the logo.
 This browser-based, local-first implementation is built with React, TypeScript,
 and Vite, with all 181 glossary drawbacks and automatic game saving.
 
