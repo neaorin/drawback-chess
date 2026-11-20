@@ -6,10 +6,13 @@ Implementation details, gameplay conventions, testing, licensing, and deployment
 
 ## Interface and behavior
 
-Live human and computer moves play a short synthesized piece-move sound using
-Web Audio, including captures, promotions, and castling (one sound per move).
-The sound combines a noise impact with rapidly damped, inharmonic resonances
-for a wooden clack; its short audio buffer is generated once and reused.
+Live human and computer moves use Web Audio: a soft wooden tap for quiet moves
+(including quiet promotions and castling), a heavier double-contact clack for
+captures, and a short ascending three-note chime for a king capture or other win.
+A winning move plays only the chime, not an additional capture sound. Draws use
+the ordinary move/capture sound when caused by a move. Each sound buffer is
+generated lazily and reused. In Fog of War, hidden opponent captures sound like
+ordinary moves so audio does not disclose them; public game wins still chime.
 The icon-only speaker button beside the header theme switch toggles sounds.
 Sound is enabled by default and the preference persists in browser storage.
 Browsers require a user interaction to unlock audio; history review, reloading,

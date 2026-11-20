@@ -4,7 +4,7 @@ import { DRAWBACKS, colorName, drawbackDescription, drawbackMoveInfo, fogVisibil
 import { chooseAI, resolveEngineBan, StockfishClient } from './ai';
 import { needsEngineBan, rulesFor, templateDescription } from './drawback-state';
 import { loadNewGameChoices, loadSaved, loadSoundPreference, NEW_GAME_KEY, SAVE_KEY, SOUND_KEY, type Mode, type NewGameChoices, type Saved } from './storage';
-import { MoveSound } from './sound';
+import { MoveSound, soundForTransition } from './sound';
 import { DIFFICULTY_LEVELS, difficultyLevel, type DrawbackChoice } from './drawback-catalogue';
 import { randomDrawback } from './game';
 import './styles.css';
@@ -92,6 +92,7 @@ function App() {
   const [soundEnabled, setSoundEnabled] = useState(initialSound.enabled);
   const sound = useRef<MoveSound | null>(null);
   const soundEnabledRef = useRef(soundEnabled);
+  const previousSoundGame = useRef(game);
   soundEnabledRef.current = soundEnabled;
   useEffect(() => {
     const player = new MoveSound();
@@ -113,8 +114,11 @@ function App() {
     };
   }, []);
   useEffect(() => {
-    if (sliding && soundEnabledRef.current) sound.current?.play();
-  }, [sliding]);
+    const previous = previousSoundGame.current;
+    previousSoundGame.current = game;
+    const kind = soundForTransition(previous, game, mode === 'ai' ? human : previous.turn);
+    if (kind && soundEnabledRef.current) sound.current?.play(kind);
+  }, [game, mode, human]);
   function toggleSound() {
     const enabled = !soundEnabled;
     setSoundEnabled(enabled);
